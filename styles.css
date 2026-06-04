@@ -1,0 +1,260 @@
+:root {
+  --cell: 34px;
+  --gap: 3px;
+  --bg: #0d1b2a;
+  --panel: #1b263b;
+  --sea: #2a4d6e;
+  --sea-light: #34618a;
+  --ship: #5b6b7b;
+  --ship-preview: #7a8a9a;
+  --hit: #e63946;
+  --miss: #a8c0d6;
+  --sunk: #8b1a23;
+  --accent: #ffd166;
+  --text: #e0e1dd;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+header {
+  text-align: center;
+  padding: 16px;
+}
+
+h1 {
+  margin: 0;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+}
+
+.status {
+  font-size: 1.1rem;
+  min-height: 1.4em;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+main {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 0 16px 40px;
+}
+
+.panel {
+  background: var(--panel);
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.hint {
+  font-size: 0.9rem;
+  opacity: 0.8;
+  margin-top: 4px;
+}
+
+kbd {
+  background: #000;
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 0.85em;
+}
+
+.ship-tray {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 12px 0;
+}
+
+.tray-ship {
+  display: flex;
+  gap: var(--gap);
+  padding: 6px;
+  background: #0d1b2a;
+  border-radius: 6px;
+  cursor: grab;
+  border: 2px solid transparent;
+  touch-action: none;
+  user-select: none;
+}
+
+.drag-ghost {
+  position: fixed;
+  z-index: 1000;
+  pointer-events: none;
+  background: var(--accent);
+  color: #0d1b2a;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.tray-ship[data-placed="true"] {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.tray-ship .seg {
+  width: var(--cell);
+  height: var(--cell);
+  background: var(--ship);
+  border-radius: 3px;
+}
+
+.tray-ship.vertical {
+  flex-direction: column;
+}
+
+.setup-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+button {
+  background: var(--sea-light);
+  color: var(--text);
+  border: none;
+  padding: 10px 16px;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+button:hover:not(:disabled) {
+  background: var(--accent);
+  color: #0d1b2a;
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.boards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 28px;
+  justify-content: center;
+}
+
+.board-wrap h2 {
+  text-align: center;
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.board {
+  display: grid;
+  grid-template-columns: repeat(10, var(--cell));
+  grid-template-rows: repeat(10, var(--cell));
+  gap: var(--gap);
+  background: #0a141f;
+  padding: var(--gap);
+  border-radius: 6px;
+}
+
+.cell {
+  width: var(--cell);
+  height: var(--cell);
+  background: var(--sea);
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  transition: background 0.12s;
+}
+
+.board.targetable .cell:not(.hit):not(.miss):hover {
+  background: var(--sea-light);
+  cursor: crosshair;
+}
+
+.cell.ship {
+  background: var(--ship);
+}
+
+.cell.hit {
+  background: var(--hit);
+}
+
+.cell.hit::after {
+  content: "✸";
+  color: #fff;
+}
+
+.cell.miss {
+  background: var(--miss);
+}
+
+.cell.miss::after {
+  content: "•";
+  color: #0d1b2a;
+}
+
+.cell.sunk {
+  background: var(--sunk);
+}
+
+.cell.preview-ok {
+  background: var(--ship-preview);
+}
+
+.cell.preview-bad {
+  background: var(--hit);
+}
+
+.hidden {
+  display: none !important;
+}
+
+.end-screen {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.end-card {
+  background: var(--panel);
+  padding: 40px;
+  border-radius: 12px;
+  text-align: center;
+  max-width: 360px;
+}
+
+.end-card h2 {
+  margin-top: 0;
+  font-size: 2rem;
+}
+
+@media (max-width: 720px) {
+  :root {
+    --cell: 28px;
+  }
+}
+
+@media (max-width: 480px) {
+  :root {
+    --cell: 24px;
+    --gap: 2px;
+  }
+}

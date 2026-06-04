@@ -16,6 +16,15 @@
       <!-- Placement controls -->
       <section id="setup" class="panel">
         <h2>Deploy your fleet</h2>
+        <div class="difficulty">
+          <span class="difficulty-label">AI difficulty:</span>
+          <div id="difficulty-group" class="difficulty-group" role="group" aria-label="AI difficulty">
+            <button type="button" class="diff-btn" data-difficulty="easy">Easy</button>
+            <button type="button" class="diff-btn active" data-difficulty="medium">Medium</button>
+            <button type="button" class="diff-btn" data-difficulty="hard">Hard</button>
+          </div>
+          <span id="difficulty-desc" class="difficulty-desc"></span>
+        </div>
         <p class="hint">
           Drag a ship onto your board. Press <kbd>R</kbd> or click
           <em>Rotate</em> to change orientation. Or just randomize.

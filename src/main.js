@@ -1,13 +1,22 @@
 import { BOARD_SIZE, SHIPS, ORIENTATION } from "./constants.js";
 import { shipCells } from "./board.js";
 import { Game, PHASE } from "./game.js";
+import { DIFFICULTY } from "./ai.js";
 
-const game = new Game();
+const DIFFICULTY_DESC = {
+  [DIFFICULTY.EASY]: "Fires at random — never repeats a shot.",
+  [DIFFICULTY.MEDIUM]: "Hunts, then targets adjacent cells after a hit.",
+  [DIFFICULTY.HARD]: "Checkerboard hunt + tracks ship orientation. Brutal.",
+};
+
+const game = new Game({ difficulty: DIFFICULTY.MEDIUM });
 
 // --- DOM references ---
 const els = {
   status: document.getElementById("status"),
   setup: document.getElementById("setup"),
+  difficultyGroup: document.getElementById("difficulty-group"),
+  difficultyDesc: document.getElementById("difficulty-desc"),
   shipTray: document.getElementById("ship-tray"),
   rotateBtn: document.getElementById("rotate-btn"),
   randomizeBtn: document.getElementById("randomize-btn"),
@@ -290,10 +299,19 @@ function resetAll() {
   els.setup.classList.remove("hidden");
   els.aiBoard.classList.remove("targetable");
   buildTray();
+  applyDifficultyUi(game.difficulty);
   renderPlayerBoard();
   renderAiBoard();
   markTrayPlaced();
   setStatus("Place your fleet to begin.");
+}
+
+// Highlights the active difficulty button and updates the description.
+function applyDifficultyUi(difficulty) {
+  els.difficultyGroup.querySelectorAll(".diff-btn").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.difficulty === difficulty);
+  });
+  els.difficultyDesc.textContent = DIFFICULTY_DESC[difficulty];
 }
 
 // --- Wiring ---
@@ -301,6 +319,14 @@ function init() {
   buildGrid(els.playerBoard);
   buildGrid(els.aiBoard);
   buildTray();
+  applyDifficultyUi(game.difficulty);
+
+  els.difficultyGroup.addEventListener("click", (e) => {
+    const btn = e.target.closest(".diff-btn");
+    if (!btn || game.phase !== PHASE.PLACEMENT) return;
+    game.setDifficulty(btn.dataset.difficulty);
+    applyDifficultyUi(game.difficulty);
+  });
 
   els.rotateBtn.addEventListener("click", () => {
     orientation =

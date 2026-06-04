@@ -1,5 +1,5 @@
 import { Board, randomFleet } from "./board.js";
-import { RandomAI } from "./ai.js";
+import { AI, DIFFICULTY } from "./ai.js";
 
 export const PHASE = {
   PLACEMENT: "placement",
@@ -11,9 +11,14 @@ export const PHASE = {
 // Game ties together the two boards, the AI, and whose turn it is. It is UI
 // agnostic so it can be driven by the DOM or by tests.
 export class Game {
-  constructor({ rng = Math.random, AIClass = RandomAI } = {}) {
+  constructor({
+    rng = Math.random,
+    AIClass = AI,
+    difficulty = DIFFICULTY.MEDIUM,
+  } = {}) {
     this.rng = rng;
     this.AIClass = AIClass;
+    this.difficulty = difficulty;
     this.reset();
   }
 
@@ -21,9 +26,15 @@ export class Game {
     this.playerBoard = new Board();
     this.aiBoard = new Board();
     randomFleet(this.aiBoard, this.rng);
-    this.ai = new this.AIClass(this.aiBoard.size, this.rng);
+    this.ai = new this.AIClass(this.aiBoard.size, this.rng, this.difficulty);
     this.phase = PHASE.PLACEMENT;
     this.winner = null;
+  }
+
+  // Sets difficulty and rebuilds the AI. Only meaningful before battle starts.
+  setDifficulty(difficulty) {
+    this.difficulty = difficulty;
+    this.ai = new this.AIClass(this.aiBoard.size, this.rng, difficulty);
   }
 
   randomizePlayerFleet() {

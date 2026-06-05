@@ -188,6 +188,11 @@ button:disabled {
   justify-content: center;
 }
 
+.board-wrap {
+  position: relative;
+  padding-bottom: 52px;
+}
+
 .board-wrap h2 {
   text-align: center;
   font-size: 1rem;
@@ -267,6 +272,7 @@ button:disabled {
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 2000;
 }
 
 .end-card {
@@ -280,6 +286,248 @@ button:disabled {
 .end-card h2 {
   margin-top: 0;
   font-size: 2rem;
+}
+
+/* --- Launch batteries --- */
+.launch-pad {
+  position: absolute;
+  left: 50%;
+  bottom: 4px;
+  transform: translateX(-50%);
+  width: 92px;
+  height: 30px;
+  border-radius: 6px 6px 4px 4px;
+  background: linear-gradient(180deg, #3a4a5c 0%, #1b2735 100%);
+  border: 1px solid #46627e;
+  box-shadow: inset 0 2px 3px rgba(255, 255, 255, 0.08),
+    0 3px 8px rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 3px;
+}
+
+/* The launcher barrel poking up from the battery, aimed at the waters above. */
+.launch-pad::before {
+  content: "";
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 10px;
+  height: 16px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #6b7c8e, #38485a);
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.5);
+}
+
+.pad-label {
+  font-size: 0.6rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.player-pad {
+  border-color: #4d7fb0;
+}
+.player-pad::before {
+  background: linear-gradient(180deg, #7fb0e0, #3a6896);
+}
+.enemy-pad {
+  border-color: #b04d4d;
+}
+.enemy-pad::before {
+  background: linear-gradient(180deg, #e07f7f, #963a3a);
+}
+
+/* --- Missile in flight --- */
+.rocket {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 26px;
+  height: 7px;
+  z-index: 900;
+  pointer-events: none;
+  will-change: transform;
+}
+
+/* Warhead body (drawn pointing right; the element is rotated toward target). */
+.rocket::before {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 22px;
+  height: 7px;
+  border-radius: 4px 6px 6px 4px;
+  background: linear-gradient(90deg, #cfd8e0 0%, #f4f7fa 70%, #ff5a3c 100%);
+  box-shadow: 0 0 6px rgba(255, 209, 102, 0.7);
+}
+
+/* Exhaust flame trailing behind. */
+.rocket::after {
+  content: "";
+  position: absolute;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 22px;
+  height: 9px;
+  border-radius: 50%;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 90, 60, 0) 0%,
+    rgba(255, 150, 50, 0.6) 45%,
+    rgba(255, 224, 130, 0.95) 100%
+  );
+  filter: blur(1px);
+  animation: flame-flicker 90ms steps(2) infinite;
+}
+
+.rocket-enemy::before {
+  background: linear-gradient(90deg, #e7c4c4 0%, #fff 70%, #ff3838 100%);
+}
+
+@keyframes flame-flicker {
+  from {
+    opacity: 0.65;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* --- Muzzle flash at the battery --- */
+.muzzle-flash {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 22px;
+  height: 22px;
+  margin: -11px 0 0 -11px;
+  border-radius: 50%;
+  z-index: 850;
+  pointer-events: none;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 220, 0.95) 0%,
+    rgba(255, 200, 90, 0.7) 40%,
+    rgba(255, 150, 60, 0) 75%
+  );
+  animation: muzzle 260ms ease-out forwards;
+}
+
+@keyframes muzzle {
+  from {
+    transform: scale(0.3);
+    opacity: 1;
+  }
+  to {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+
+/* --- Impact --- */
+.impact {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 880;
+  pointer-events: none;
+}
+
+/* Fireball on a hit. */
+.impact-hit {
+  width: 46px;
+  height: 46px;
+  margin: -23px 0 0 -23px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    #fff 0%,
+    #ffe082 25%,
+    #ff7d3c 55%,
+    #e63946 75%,
+    rgba(230, 57, 70, 0) 80%
+  );
+  animation: blast 520ms ease-out forwards;
+}
+
+@keyframes blast {
+  0% {
+    transform: scale(0.2);
+    opacity: 1;
+  }
+  60% {
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+
+/* Water splash on a miss. */
+.impact-miss {
+  width: 32px;
+  height: 32px;
+  margin: -16px 0 0 -16px;
+  border-radius: 50%;
+  border: 3px solid rgba(168, 192, 214, 0.9);
+  background: radial-gradient(
+    circle,
+    rgba(168, 192, 214, 0.5) 0%,
+    rgba(168, 192, 214, 0) 70%
+  );
+  animation: splash 480ms ease-out forwards;
+}
+
+@keyframes splash {
+  0% {
+    transform: scale(0.2);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+}
+
+/* Shrapnel sparks flung from a hit. */
+.spark {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 4px;
+  height: 4px;
+  margin: -2px 0 0 -2px;
+  border-radius: 50%;
+  background: #ffd166;
+  box-shadow: 0 0 4px #ffae42;
+  animation: spark-fly 520ms ease-out forwards;
+}
+
+@keyframes spark-fly {
+  from {
+    transform: rotate(var(--a)) translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: rotate(var(--a)) translateX(var(--d));
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rocket,
+  .muzzle-flash,
+  .spark {
+    display: none !important;
+  }
 }
 
 @media (max-width: 720px) {

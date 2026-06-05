@@ -2,6 +2,7 @@ import { BOARD_SIZE, SHIPS, ORIENTATION } from "./constants.js";
 import { shipCells } from "./board.js";
 import { Game, PHASE } from "./game.js";
 import { DIFFICULTY } from "./ai.js";
+import { launchStrike } from "./effects.js";
 
 const DIFFICULTY_DESC = {
   [DIFFICULTY.EASY]: "Fires at random — never repeats a shot.",
@@ -28,7 +29,13 @@ const els = {
   endTitle: document.getElementById("end-title"),
   endMessage: document.getElementById("end-message"),
   playAgainBtn: document.getElementById("play-again-btn"),
+  playerPad: document.getElementById("player-pad"),
+  enemyPad: document.getElementById("enemy-pad"),
 };
+
+// True while a strike animation is in flight, to block further input until the
+// player's turn comes back around.
+let busy = false;
 
 // Placement UI state.
 let orientation = ORIENTATION.HORIZONTAL;
@@ -223,7 +230,7 @@ function onDragEnd(e) {
 
 // --- Firing ---
 function handlePlayerShot(e) {
-  if (game.phase !== PHASE.PLAYER_TURN) return;
+  if (game.phase !== PHASE.PLAYER_TURN || busy) return;
   const cell = e.target.closest(".cell");
   if (!cell) return;
   const row = +cell.dataset.row;
@@ -231,22 +238,53 @@ function handlePlayerShot(e) {
   const res = game.playerFire(row, col);
   if (!res) return;
 
-  renderAiBoard();
-  announceShot(res, "You");
-  if (game.phase === PHASE.OVER) return endGame();
-
-  updateTurnUi();
-  // Let the player see their result before the AI responds.
-  setTimeout(aiTurn, 650);
+  busy = true;
+  els.aiBoard.classList.remove("targetable");
+  setStatus("Firing\u2026");
+  launchStrike({
+    targetCell: cellAt(els.aiBoard, row, col),
+    originEl: els.playerPad,
+    side: "player",
+    hit: res.result === "hit",
+  }).then(() => {
+    renderAiBoard();
+    announceShot(res, "You");
+    if (game.phase === PHASE.OVER) {
+      busy = false;
+      return endGame();
+    }
+    updateTurnUi();
+    // Let the player see their result before the AI responds.
+    setTimeout(aiTurn, 450);
+  });
 }
 
 function aiTurn() {
-  if (game.phase !== PHASE.AI_TURN) return;
+  if (game.phase !== PHASE.AI_TURN) {
+    busy = false;
+    return;
+  }
   const res = game.aiFire();
-  renderPlayerBoard();
-  if (res) announceShot(res, "Enemy");
-  if (game.phase === PHASE.OVER) return endGame();
-  updateTurnUi();
+  if (!res) {
+    busy = false;
+    return;
+  }
+  setStatus("Incoming fire\u2026");
+  launchStrike({
+    targetCell: cellAt(els.playerBoard, res.row, res.col),
+    originEl: els.enemyPad,
+    side: "enemy",
+    hit: res.result === "hit",
+  }).then(() => {
+    renderPlayerBoard();
+    announceShot(res, "Enemy");
+    if (game.phase === PHASE.OVER) {
+      busy = false;
+      return endGame();
+    }
+    updateTurnUi();
+    busy = false;
+  });
 }
 
 function announceShot(res, who) {
@@ -295,6 +333,7 @@ function resetAll() {
   game.reset();
   orientation = ORIENTATION.HORIZONTAL;
   draggingShip = null;
+  busy = false;
   els.endScreen.classList.add("hidden");
   els.setup.classList.remove("hidden");
   els.aiBoard.classList.remove("targetable");

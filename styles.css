@@ -1,0 +1,681 @@
+:root {
+  --cell: 34px;
+  --gap: 3px;
+  --bg: #0d1b2a;
+  --panel: #1b263b;
+  --sea: #2a4d6e;
+  --sea-light: #34618a;
+  --ship: #5b6b7b;
+  --ship-preview: #7a8a9a;
+  --hit: #e63946;
+  --miss: #a8c0d6;
+  --sunk: #8b1a23;
+  --accent: #ffd166;
+  --text: #e0e1dd;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+header {
+  text-align: center;
+  padding: 16px;
+}
+
+h1 {
+  margin: 0;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+}
+
+.status {
+  font-size: 1.1rem;
+  min-height: 1.4em;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+main {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 0 16px 40px;
+}
+
+.panel {
+  background: var(--panel);
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.hint {
+  font-size: 0.9rem;
+  opacity: 0.8;
+  margin-top: 4px;
+}
+
+kbd {
+  background: #000;
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 0.85em;
+}
+
+.difficulty {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 12px 0 4px;
+}
+
+.difficulty-label {
+  font-weight: 600;
+}
+
+.difficulty-group {
+  display: inline-flex;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid var(--sea-light);
+}
+
+.diff-btn {
+  background: var(--panel);
+  border-radius: 0;
+  padding: 8px 16px;
+}
+
+.diff-btn.active {
+  background: var(--accent);
+  color: #0d1b2a;
+  font-weight: 700;
+}
+
+.difficulty-desc {
+  font-size: 0.85rem;
+  opacity: 0.8;
+}
+
+.ship-tray {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 12px 0;
+}
+
+.tray-ship {
+  display: flex;
+  gap: var(--gap);
+  padding: 6px;
+  background: #0d1b2a;
+  border-radius: 6px;
+  cursor: grab;
+  border: 2px solid transparent;
+  touch-action: none;
+  user-select: none;
+}
+
+.drag-ghost {
+  position: fixed;
+  z-index: 1000;
+  pointer-events: none;
+  background: var(--accent);
+  color: #0d1b2a;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.tray-ship[data-placed="true"] {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.tray-ship .seg {
+  position: relative;
+  width: var(--cell);
+  height: var(--cell);
+  background: linear-gradient(180deg, #7d8c9c 0%, #515f6c 55%, #3a4450 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+/* Deck line + rounded bow/stern so a tray piece looks like a hull, not blocks. */
+.tray-ship .seg::before {
+  content: "";
+  position: absolute;
+  background: rgba(226, 234, 240, 0.55);
+  border-radius: 2px;
+}
+.tray-ship:not(.vertical) .seg::before {
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 4px;
+  transform: translateY(-50%);
+}
+.tray-ship.vertical .seg::before {
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 4px;
+  transform: translateX(-50%);
+}
+.tray-ship:not(.vertical) .seg:first-child {
+  border-radius: 50% 0 0 50%;
+}
+.tray-ship:not(.vertical) .seg:last-child {
+  border-radius: 0 50% 50% 0;
+}
+.tray-ship.vertical .seg:first-child {
+  border-radius: 50% 50% 0 0;
+}
+.tray-ship.vertical .seg:last-child {
+  border-radius: 0 0 50% 50%;
+}
+
+.tray-ship.vertical {
+  flex-direction: column;
+}
+
+.setup-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+button {
+  background: var(--sea-light);
+  color: var(--text);
+  border: none;
+  padding: 10px 16px;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+button:hover:not(:disabled) {
+  background: var(--accent);
+  color: #0d1b2a;
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.boards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 28px;
+  justify-content: center;
+}
+
+.board-wrap {
+  position: relative;
+  padding-bottom: 52px;
+}
+
+.board-wrap h2 {
+  text-align: center;
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.board {
+  display: grid;
+  grid-template-columns: repeat(10, var(--cell));
+  grid-template-rows: repeat(10, var(--cell));
+  gap: var(--gap);
+  background: #0a141f;
+  padding: var(--gap);
+  border-radius: 6px;
+}
+
+/* --- Fleet roster: a silhouette of each vessel on each side, dimmed when sunk. */
+.fleet-roster {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: max-content;
+  margin: 0 auto 10px;
+  padding: 8px 10px;
+  background: #0d1b2a;
+  border: 1px solid #1b3147;
+  border-radius: 6px;
+}
+
+.roster-ship {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: opacity 0.25s;
+}
+
+.silo {
+  display: flex;
+  gap: 1px;
+}
+
+.silo-seg {
+  width: 12px;
+  height: 9px;
+  background: linear-gradient(180deg, #8aa0b4, #59697a);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+.silo .silo-seg:first-child {
+  border-radius: 50% 0 0 50%;
+}
+.silo .silo-seg:last-child {
+  border-radius: 0 50% 50% 0;
+}
+
+.roster-label {
+  font-size: 0.72rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #aebfce;
+}
+
+.roster-ship.sunk {
+  opacity: 0.45;
+}
+.roster-ship.sunk .silo-seg {
+  background: #5a1a1f;
+  box-shadow: none;
+}
+.roster-ship.sunk .roster-label {
+  color: var(--hit);
+  text-decoration: line-through;
+}
+
+.cell {
+  position: relative;
+  width: var(--cell);
+  height: var(--cell);
+  background: var(--sea);
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  transition: background 0.12s;
+}
+
+.board.targetable .cell:not(.hit):not(.miss):hover {
+  background: var(--sea-light);
+  cursor: crosshair;
+}
+
+/* A placed ship: a steel hull with a deck line; bow/stern cells are rounded so
+   adjacent cells read as one continuous vessel. */
+.cell.ship {
+  background: linear-gradient(180deg, #7d8c9c 0%, #515f6c 55%, #3a4450 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.35);
+}
+
+.cell.ship::before {
+  content: "";
+  position: absolute;
+  background: rgba(226, 234, 240, 0.55);
+  border-radius: 2px;
+  pointer-events: none;
+}
+.cell.ship-h::before {
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 4px;
+  transform: translateY(-50%);
+}
+.cell.ship-v::before {
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 4px;
+  transform: translateX(-50%);
+}
+
+.cell.ship-h.ship-bow {
+  border-radius: 50% 0 0 50%;
+}
+.cell.ship-h.ship-stern {
+  border-radius: 0 50% 50% 0;
+}
+.cell.ship-v.ship-bow {
+  border-radius: 50% 50% 0 0;
+}
+.cell.ship-v.ship-stern {
+  border-radius: 0 0 50% 50%;
+}
+
+/* Once a cell is struck, drop the deck line so the hit/miss marker reads clearly. */
+.cell.hit::before {
+  display: none;
+}
+
+.cell.hit {
+  background: var(--hit);
+}
+
+.cell.hit::after {
+  content: "✸";
+  color: #fff;
+}
+
+.cell.miss {
+  background: var(--miss);
+}
+
+.cell.miss::after {
+  content: "•";
+  color: #0d1b2a;
+}
+
+.cell.sunk {
+  background: var(--sunk);
+}
+
+.cell.preview-ok {
+  background: var(--ship-preview);
+}
+
+.cell.preview-bad {
+  background: var(--hit);
+}
+
+.hidden {
+  display: none !important;
+}
+
+.end-screen {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.end-card {
+  background: var(--panel);
+  padding: 40px;
+  border-radius: 12px;
+  text-align: center;
+  max-width: 360px;
+}
+
+.end-card h2 {
+  margin-top: 0;
+  font-size: 2rem;
+}
+
+/* --- Launch batteries --- */
+.launch-pad {
+  position: absolute;
+  left: 50%;
+  bottom: 4px;
+  transform: translateX(-50%);
+  width: 92px;
+  height: 30px;
+  border-radius: 6px 6px 4px 4px;
+  background: linear-gradient(180deg, #3a4a5c 0%, #1b2735 100%);
+  border: 1px solid #46627e;
+  box-shadow: inset 0 2px 3px rgba(255, 255, 255, 0.08),
+    0 3px 8px rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 3px;
+}
+
+/* The launcher barrel poking up from the battery, aimed at the waters above. */
+.launch-pad::before {
+  content: "";
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 10px;
+  height: 16px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #6b7c8e, #38485a);
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.5);
+}
+
+.pad-label {
+  font-size: 0.6rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.player-pad {
+  border-color: #4d7fb0;
+}
+.player-pad::before {
+  background: linear-gradient(180deg, #7fb0e0, #3a6896);
+}
+.enemy-pad {
+  border-color: #b04d4d;
+}
+.enemy-pad::before {
+  background: linear-gradient(180deg, #e07f7f, #963a3a);
+}
+
+/* --- Missile in flight --- */
+.rocket {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 26px;
+  height: 7px;
+  z-index: 900;
+  pointer-events: none;
+  will-change: transform;
+}
+
+/* Warhead body (drawn pointing right; the element is rotated toward target). */
+.rocket::before {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 22px;
+  height: 7px;
+  border-radius: 4px 6px 6px 4px;
+  background: linear-gradient(90deg, #cfd8e0 0%, #f4f7fa 70%, #ff5a3c 100%);
+  box-shadow: 0 0 6px rgba(255, 209, 102, 0.7);
+}
+
+/* Exhaust flame trailing behind. */
+.rocket::after {
+  content: "";
+  position: absolute;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 22px;
+  height: 9px;
+  border-radius: 50%;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 90, 60, 0) 0%,
+    rgba(255, 150, 50, 0.6) 45%,
+    rgba(255, 224, 130, 0.95) 100%
+  );
+  filter: blur(1px);
+  animation: flame-flicker 90ms steps(2) infinite;
+}
+
+.rocket-enemy::before {
+  background: linear-gradient(90deg, #e7c4c4 0%, #fff 70%, #ff3838 100%);
+}
+
+@keyframes flame-flicker {
+  from {
+    opacity: 0.65;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* --- Muzzle flash at the battery --- */
+.muzzle-flash {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 22px;
+  height: 22px;
+  margin: -11px 0 0 -11px;
+  border-radius: 50%;
+  z-index: 850;
+  pointer-events: none;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 220, 0.95) 0%,
+    rgba(255, 200, 90, 0.7) 40%,
+    rgba(255, 150, 60, 0) 75%
+  );
+  animation: muzzle 260ms ease-out forwards;
+}
+
+@keyframes muzzle {
+  from {
+    transform: scale(0.3);
+    opacity: 1;
+  }
+  to {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+
+/* --- Impact --- */
+.impact {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 880;
+  pointer-events: none;
+}
+
+/* Fireball on a hit. */
+.impact-hit {
+  width: 46px;
+  height: 46px;
+  margin: -23px 0 0 -23px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    #fff 0%,
+    #ffe082 25%,
+    #ff7d3c 55%,
+    #e63946 75%,
+    rgba(230, 57, 70, 0) 80%
+  );
+  animation: blast 520ms ease-out forwards;
+}
+
+@keyframes blast {
+  0% {
+    transform: scale(0.2);
+    opacity: 1;
+  }
+  60% {
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+
+/* Water splash on a miss. */
+.impact-miss {
+  width: 32px;
+  height: 32px;
+  margin: -16px 0 0 -16px;
+  border-radius: 50%;
+  border: 3px solid rgba(168, 192, 214, 0.9);
+  background: radial-gradient(
+    circle,
+    rgba(168, 192, 214, 0.5) 0%,
+    rgba(168, 192, 214, 0) 70%
+  );
+  animation: splash 480ms ease-out forwards;
+}
+
+@keyframes splash {
+  0% {
+    transform: scale(0.2);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+}
+
+/* Shrapnel sparks flung from a hit. */
+.spark {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 4px;
+  height: 4px;
+  margin: -2px 0 0 -2px;
+  border-radius: 50%;
+  background: #ffd166;
+  box-shadow: 0 0 4px #ffae42;
+  animation: spark-fly 520ms ease-out forwards;
+}
+
+@keyframes spark-fly {
+  from {
+    transform: rotate(var(--a)) translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: rotate(var(--a)) translateX(var(--d));
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rocket,
+  .muzzle-flash,
+  .spark {
+    display: none !important;
+  }
+}
+
+@media (max-width: 720px) {
+  :root {
+    --cell: 28px;
+  }
+}
+
+@media (max-width: 480px) {
+  :root {
+    --cell: 24px;
+    --gap: 2px;
+  }
+}

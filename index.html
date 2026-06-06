@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Battleship vs. AI</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Battleship</h1>
+      <p id="status" class="status">Place your fleet to begin.</p>
+    </header>
+
+    <main>
+      <!-- Placement controls -->
+      <section id="setup" class="panel">
+        <h2>Deploy your fleet</h2>
+        <div class="difficulty">
+          <span class="difficulty-label">AI difficulty:</span>
+          <div id="difficulty-group" class="difficulty-group" role="group" aria-label="AI difficulty">
+            <button type="button" class="diff-btn" data-difficulty="easy">Easy</button>
+            <button type="button" class="diff-btn active" data-difficulty="medium">Medium</button>
+            <button type="button" class="diff-btn" data-difficulty="hard">Hard</button>
+          </div>
+          <span id="difficulty-desc" class="difficulty-desc"></span>
+        </div>
+        <p class="hint">
+          Drag a ship onto your board. Press <kbd>R</kbd> or click
+          <em>Rotate</em> to change orientation. Or just randomize.
+        </p>
+        <div id="ship-tray" class="ship-tray"></div>
+        <div class="setup-buttons">
+          <button id="rotate-btn" type="button">Rotate (R)</button>
+          <button id="randomize-btn" type="button">Randomize</button>
+          <button id="reset-placement-btn" type="button">Clear</button>
+          <button id="start-btn" type="button" disabled>Start Battle</button>
+        </div>
+      </section>
+
+      <div class="boards">
+        <section class="board-wrap">
+          <h2>Your Fleet</h2>
+          <div id="player-roster" class="fleet-roster" aria-label="Your fleet status"></div>
+          <div id="player-board" class="board" aria-label="Your fleet"></div>
+          <div id="enemy-pad" class="launch-pad enemy-pad" aria-hidden="true">
+            <span class="pad-label">Enemy Battery</span>
+          </div>
+        </section>
+        <section class="board-wrap">
+          <h2>Targeting Grid</h2>
+          <div id="enemy-roster" class="fleet-roster" aria-label="Enemy fleet status"></div>
+          <div id="ai-board" class="board" aria-label="Enemy waters"></div>
+          <div id="player-pad" class="launch-pad player-pad" aria-hidden="true">
+            <span class="pad-label">Your Battery</span>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <!-- End screen -->
+    <div id="end-screen" class="end-screen hidden">
+      <div class="end-card">
+        <h2 id="end-title">Victory!</h2>
+        <p id="end-message"></p>
+        <button id="play-again-btn" type="button">Play Again</button>
+      </div>
+    </div>
+
+    <script type="module" src="src/main.js"></script>
+  </body>
+</html>

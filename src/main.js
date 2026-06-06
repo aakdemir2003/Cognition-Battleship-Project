@@ -31,6 +31,8 @@ const els = {
   playAgainBtn: document.getElementById("play-again-btn"),
   playerPad: document.getElementById("player-pad"),
   enemyPad: document.getElementById("enemy-pad"),
+  playerRoster: document.getElementById("player-roster"),
+  enemyRoster: document.getElementById("enemy-roster"),
 };
 
 // True while a strike animation is in flight, to block further input until the
@@ -63,46 +65,110 @@ function cellAt(container, row, col) {
   return container.querySelector(`[data-row="${row}"][data-col="${col}"]`);
 }
 
+// Tags a ship's cells so CSS can draw a continuous hull: orientation plus which
+// segment this cell is (bow/mid/stern), based on its index along the ship.
+function applyHullClasses(container, ship) {
+  const horiz = ship.orientation === ORIENTATION.HORIZONTAL;
+  ship.cells.forEach(([r, c], i) => {
+    const cell = cellAt(container, r, c);
+    if (!cell) return;
+    cell.classList.add("ship", horiz ? "ship-h" : "ship-v");
+    const seg =
+      i === 0 ? "ship-bow" : i === ship.cells.length - 1 ? "ship-stern" : "ship-mid";
+    cell.classList.add(seg);
+  });
+}
+
 // Renders the player's own board, showing ships and any shots taken against it.
 function renderPlayerBoard() {
   for (let r = 0; r < BOARD_SIZE; r++) {
     for (let c = 0; c < BOARD_SIZE; c++) {
-      const cell = cellAt(els.playerBoard, r, c);
-      cell.className = "cell";
-      const ship = game.playerBoard.shipAt(r, c);
-      if (ship) cell.classList.add("ship");
-      const key = `${r},${c}`;
-      if (game.playerBoard.shots.has(key)) {
-        if (ship) {
-          cell.classList.add("hit");
-          if (game.playerBoard.isShipSunk(ship)) cell.classList.add("sunk");
-        } else {
-          cell.classList.add("miss");
-        }
-      }
+      cellAt(els.playerBoard, r, c).className = "cell";
     }
   }
+  for (const ship of game.playerBoard.ships) {
+    applyHullClasses(els.playerBoard, ship);
+  }
+  for (const key of game.playerBoard.shots) {
+    const [r, c] = key.split(",").map(Number);
+    const cell = cellAt(els.playerBoard, r, c);
+    const ship = game.playerBoard.shipAt(r, c);
+    if (ship) {
+      cell.classList.add("hit");
+      if (game.playerBoard.isShipSunk(ship)) cell.classList.add("sunk");
+    } else {
+      cell.classList.add("miss");
+    }
+  }
+  updateRosters();
 }
 
-// Renders the targeting grid: only shots are visible (enemy ships hidden until
-// sunk).
+// Renders the targeting grid: only shots are visible, and an enemy ship's hull
+// is revealed only once it is fully sunk.
 function renderAiBoard() {
   for (let r = 0; r < BOARD_SIZE; r++) {
     for (let c = 0; c < BOARD_SIZE; c++) {
-      const cell = cellAt(els.aiBoard, r, c);
-      cell.className = "cell";
-      const key = `${r},${c}`;
-      if (game.aiBoard.shots.has(key)) {
-        const ship = game.aiBoard.shipAt(r, c);
-        if (ship) {
-          cell.classList.add("hit");
-          if (game.aiBoard.isShipSunk(ship)) cell.classList.add("sunk");
-        } else {
-          cell.classList.add("miss");
-        }
+      cellAt(els.aiBoard, r, c).className = "cell";
+    }
+  }
+  for (const key of game.aiBoard.shots) {
+    const [r, c] = key.split(",").map(Number);
+    const cell = cellAt(els.aiBoard, r, c);
+    const ship = game.aiBoard.shipAt(r, c);
+    if (ship) {
+      cell.classList.add("hit");
+    } else {
+      cell.classList.add("miss");
+    }
+  }
+  for (const ship of game.aiBoard.ships) {
+    if (game.aiBoard.isShipSunk(ship)) {
+      applyHullClasses(els.aiBoard, ship);
+      for (const [r, c] of ship.cells) {
+        cellAt(els.aiBoard, r, c).classList.add("hit", "sunk");
       }
     }
   }
+  updateRosters();
+}
+
+// --- Fleet rosters: a ship silhouette per vessel on each side, dimmed when sunk.
+function buildRosters() {
+  for (const el of [els.playerRoster, els.enemyRoster]) {
+    el.innerHTML = "";
+    for (const { name, size } of SHIPS) {
+      const row = document.createElement("div");
+      row.className = "roster-ship";
+      row.dataset.name = name;
+
+      const silo = document.createElement("div");
+      silo.className = `silo silo-${size}`;
+      for (let i = 0; i < size; i++) {
+        const seg = document.createElement("span");
+        seg.className = "silo-seg";
+        silo.appendChild(seg);
+      }
+
+      const label = document.createElement("span");
+      label.className = "roster-label";
+      label.textContent = name;
+
+      row.append(silo, label);
+      el.appendChild(row);
+    }
+  }
+  updateRosters();
+}
+
+function updateRosters() {
+  const mark = (rosterEl, board) => {
+    rosterEl.querySelectorAll(".roster-ship").forEach((row) => {
+      const ship = board.ships.find((s) => s.name === row.dataset.name);
+      row.classList.toggle("sunk", !!ship && board.isShipSunk(ship));
+    });
+  };
+  mark(els.playerRoster, game.playerBoard);
+  mark(els.enemyRoster, game.aiBoard);
 }
 
 // --- Placement: ship tray ---
@@ -338,6 +404,7 @@ function resetAll() {
   els.setup.classList.remove("hidden");
   els.aiBoard.classList.remove("targetable");
   buildTray();
+  buildRosters();
   applyDifficultyUi(game.difficulty);
   renderPlayerBoard();
   renderAiBoard();
@@ -358,6 +425,7 @@ function init() {
   buildGrid(els.playerBoard);
   buildGrid(els.aiBoard);
   buildTray();
+  buildRosters();
   applyDifficultyUi(game.difficulty);
 
   els.difficultyGroup.addEventListener("click", (e) => {

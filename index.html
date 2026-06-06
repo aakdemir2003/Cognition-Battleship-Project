@@ -64,11 +64,24 @@
       </div>
     </main>
 
+    <!-- Pulsing vignette for the late-game "overtime" feel (purely decorative). -->
+    <div id="vignette" class="vignette" aria-hidden="true"></div>
+
+    <footer class="credit">
+      <img src="assets/cognition-logo.svg" alt="Cognition" class="credit-logo" />
+    </footer>
+
     <!-- End screen -->
     <div id="end-screen" class="end-screen hidden">
       <div class="end-card">
         <h2 id="end-title">Victory!</h2>
         <p id="end-message"></p>
+        <p class="end-thanks">Thank you for playing</p>
+        <img
+          src="assets/cognition-logo.svg"
+          alt="Cognition"
+          class="end-logo"
+        />
         <button id="play-again-btn" type="button">Play Again</button>
       </div>
     </div>

@@ -100,3 +100,35 @@ export function launchStrike({ targetCell, originEl, side, hit }) {
     }, FLIGHT_MS);
   });
 }
+
+const CONFETTI_COLORS = [
+  "#ffd166",
+  "#06d6a0",
+  "#ef476f",
+  "#118ab2",
+  "#f4e4c1",
+  "#ff9f1c",
+];
+
+// Showers confetti from the top of the screen to celebrate a win. Pure DOM/CSS:
+// each piece falls and spins on its own randomized delay/duration, then removes
+// itself. No-op under reduced-motion or outside the browser.
+export function launchConfetti(count = 140) {
+  if (typeof document === "undefined" || prefersReducedMotion()) return;
+  for (let i = 0; i < count; i++) {
+    const piece = document.createElement("div");
+    piece.className = "confetti";
+    const color = CONFETTI_COLORS[i % CONFETTI_COLORS.length];
+    const duration = 2.6 + Math.random() * 2.2;
+    const delay = Math.random() * 1.8;
+    piece.style.left = `${Math.random() * 100}vw`;
+    piece.style.background = color;
+    piece.style.animationDuration = `${duration}s`;
+    piece.style.animationDelay = `${delay}s`;
+    // Vary shape: some confetti read as thin streamers, others as squares.
+    if (Math.random() < 0.35) piece.style.borderRadius = "50%";
+    piece.style.opacity = "0";
+    document.body.appendChild(piece);
+    setTimeout(() => piece.remove(), (duration + delay) * 1000 + 200);
+  }
+}

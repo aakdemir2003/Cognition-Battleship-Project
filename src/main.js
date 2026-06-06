@@ -2,7 +2,7 @@ import { BOARD_SIZE, SHIPS, ORIENTATION } from "./constants.js";
 import { shipCells } from "./board.js";
 import { Game, PHASE } from "./game.js";
 import { DIFFICULTY } from "./ai.js";
-import { launchStrike } from "./effects.js";
+import { launchStrike, launchConfetti } from "./effects.js";
 
 const DIFFICULTY_DESC = {
   [DIFFICULTY.EASY]: "Fires at random — never repeats a shot.",
@@ -171,6 +171,38 @@ function updateRosters() {
   mark(els.enemyRoster, game.aiBoard);
 }
 
+// --- Dynamic background: tint by who's ahead + late-game "overtime" pulse ---
+function shipsRemaining(board) {
+  return board.ships.filter((s) => !board.isShipSunk(s)).length;
+}
+
+// Shifts the backdrop glow green/red depending on the score, and switches on the
+// pulsing "overtime" atmosphere once either fleet is nearly destroyed.
+function updateAtmosphere() {
+  const inBattle =
+    game.phase === PHASE.PLAYER_TURN || game.phase === PHASE.AI_TURN;
+
+  if (!inBattle) {
+    document.body.style.setProperty("--win-a", "0");
+    document.body.style.setProperty("--lose-a", "0");
+    document.body.classList.remove("overtime");
+    return;
+  }
+
+  const playerLeft = shipsRemaining(game.playerBoard);
+  const enemyLeft = shipsRemaining(game.aiBoard);
+  // Positive when the player is ahead (has sunk more enemy ships than lost).
+  const lead = playerLeft - enemyLeft;
+  const intensity = Math.min(0.12 + Math.abs(lead) * 0.11, 0.5);
+
+  document.body.style.setProperty("--win-a", lead > 0 ? `${intensity}` : "0");
+  document.body.style.setProperty("--lose-a", lead < 0 ? `${intensity}` : "0");
+
+  // Overtime: tension ramps up once a fleet is down to its last two ships.
+  const overtime = Math.min(playerLeft, enemyLeft) <= 2;
+  document.body.classList.toggle("overtime", overtime);
+}
+
 // --- Placement: ship tray ---
 function buildTray() {
   els.shipTray.innerHTML = "";
@@ -314,6 +346,7 @@ function handlePlayerShot(e) {
     hit: res.result === "hit",
   }).then(() => {
     renderAiBoard();
+    updateAtmosphere();
     announceShot(res, "You");
     if (game.phase === PHASE.OVER) {
       busy = false;
@@ -343,6 +376,7 @@ function aiTurn() {
     hit: res.result === "hit",
   }).then(() => {
     renderPlayerBoard();
+    updateAtmosphere();
     announceShot(res, "Enemy");
     if (game.phase === PHASE.OVER) {
       busy = false;
@@ -382,10 +416,13 @@ function startBattle() {
   els.setup.classList.add("hidden");
   els.aiBoard.classList.add("targetable");
   setStatus("Your turn — fire at the targeting grid!");
+  updateAtmosphere();
 }
 
 function endGame() {
   els.aiBoard.classList.remove("targetable");
+  // Battle's over: clear the mood glow and stop the overtime pulse.
+  updateAtmosphere();
   const win = game.winner === "player";
   els.endTitle.textContent = win ? "Victory!" : "Defeat";
   els.endMessage.textContent = win
@@ -393,6 +430,7 @@ function endGame() {
     : "Your fleet was sunk.";
   els.endScreen.classList.remove("hidden");
   setStatus(win ? "You win!" : "You lose.");
+  if (win) launchConfetti();
 }
 
 function resetAll() {
@@ -403,6 +441,7 @@ function resetAll() {
   els.endScreen.classList.add("hidden");
   els.setup.classList.remove("hidden");
   els.aiBoard.classList.remove("targetable");
+  updateAtmosphere();
   buildTray();
   buildRosters();
   applyDifficultyUi(game.difficulty);

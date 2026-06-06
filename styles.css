@@ -20,10 +20,33 @@
 
 body {
   margin: 0;
-  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-family: "Rajdhani", "Segoe UI", system-ui, -apple-system, sans-serif;
   background: var(--bg);
   color: var(--text);
   min-height: 100vh;
+}
+
+/* Naval battle scene fixed behind the game, with a dark scrim on top so the
+   boards and panels stay readable. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background: url("assets/battle-bg.svg") center / cover no-repeat,
+    var(--bg);
+}
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: radial-gradient(
+    ellipse at 50% 28%,
+    rgba(13, 27, 42, 0.35) 0%,
+    rgba(6, 12, 20, 0.82) 70%,
+    rgba(6, 12, 20, 0.92) 100%
+  );
 }
 
 header {
@@ -33,15 +56,20 @@ header {
 
 h1 {
   margin: 0;
-  letter-spacing: 4px;
+  font-family: "Black Ops One", "Rajdhani", sans-serif;
+  font-size: 2.6rem;
+  letter-spacing: 8px;
   text-transform: uppercase;
+  color: #f4e4c1;
+  text-shadow: 0 2px 0 #000, 0 0 18px rgba(255, 196, 110, 0.45);
 }
 
 .status {
-  font-size: 1.1rem;
+  font-size: 1.15rem;
   min-height: 1.4em;
   color: var(--accent);
-  font-weight: 600;
+  font-weight: 700;
+  letter-spacing: 1px;
 }
 
 main {
@@ -51,10 +79,17 @@ main {
 }
 
 .panel {
-  background: var(--panel);
+  background: rgba(20, 32, 48, 0.82);
+  border: 1px solid rgba(120, 160, 200, 0.18);
   border-radius: 10px;
   padding: 16px;
   margin-bottom: 20px;
+  backdrop-filter: blur(3px);
+}
+
+h2 {
+  font-family: "Black Ops One", "Rajdhani", sans-serif;
+  letter-spacing: 2px;
 }
 
 .hint {
@@ -201,7 +236,11 @@ button {
   border: none;
   padding: 10px 16px;
   border-radius: 6px;
+  font-family: "Rajdhani", sans-serif;
   font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
   cursor: pointer;
   transition: background 0.15s;
 }
@@ -422,7 +461,9 @@ button:disabled {
 
 .end-card h2 {
   margin-top: 0;
+  font-family: "Black Ops One", sans-serif;
   font-size: 2rem;
+  letter-spacing: 3px;
 }
 
 /* --- Launch batteries --- */

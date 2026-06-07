@@ -1,0 +1,20 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "rooms": {
+      "$code": {
+        ".read": true,
+        ".write": true,
+        "meta": {
+          "status": {
+            ".validate": "newData.isString() && newData.val().matches(/^(waiting|placing|playing|over)$/)"
+          },
+          "turn": {
+            ".validate": "newData.isString() && newData.val().matches(/^(host|guest)$/)"
+          }
+        }
+      }
+    }
+  }
+}

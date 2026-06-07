@@ -960,6 +960,35 @@ button:disabled {
   opacity: 0.95;
 }
 
+/* End-screen action row: Copy result + Play Again side by side. */
+.end-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+#copy-result-btn {
+  background: transparent;
+  border: 1px solid var(--sea-light);
+}
+#copy-result-btn:hover:not(:disabled) {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.copy-feedback {
+  display: block;
+  min-height: 1.1em;
+  margin-top: 10px;
+  font-size: 0.82rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #8aa6bf;
+}
+.copy-feedback.ok {
+  color: var(--accent);
+  font-weight: 700;
+}
+
 /* Small persistent Cognition credit in the corner. */
 .credit {
   position: fixed;

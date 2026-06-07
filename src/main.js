@@ -5,6 +5,7 @@ import { DIFFICULTY } from "./ai.js";
 import { launchStrike, launchConfetti } from "./effects.js";
 import { OnlineMatch } from "./online.js";
 import { isCloudConfigured } from "./net.js";
+import { buildResultText } from "./share.js";
 
 const DIFFICULTY_DESC = {
   [DIFFICULTY.EASY]: "Fires at random — never repeats a shot.",
@@ -33,6 +34,8 @@ const els = {
   statShots: document.getElementById("stat-shots"),
   statAccuracy: document.getElementById("stat-accuracy"),
   playAgainBtn: document.getElementById("play-again-btn"),
+  copyResultBtn: document.getElementById("copy-result-btn"),
+  copyFeedback: document.getElementById("copy-feedback"),
   battleLog: document.getElementById("battle-log"),
   playerColLabels: document.getElementById("player-col-labels"),
   playerRowLabels: document.getElementById("player-row-labels"),
@@ -74,6 +77,9 @@ function resetEnemyView() {
 
 // Player shot accuracy tally for the end-game summary.
 let stats = { shots: 0, hits: 0 };
+
+// Whether the player won the last finished game (for the shareable result card).
+let lastWin = false;
 
 function setStatus(text) {
   els.status.textContent = text;
@@ -806,6 +812,8 @@ function endGame() {
 
 // Shows the WIN / DEFEAT end screen with the player's shot count and accuracy.
 function showEndScreen(win) {
+  lastWin = win;
+  els.copyFeedback.textContent = "";
   els.endTitle.textContent = win ? "Victory" : "Defeat";
   els.endTitle.classList.toggle("win", win);
   els.endTitle.classList.toggle("lose", !win);
@@ -820,6 +828,93 @@ function showEndScreen(win) {
   els.endScreen.classList.remove("hidden");
   setStatus(win ? "You win!" : "You lose.");
   if (win) launchConfetti();
+}
+
+// --- Shareable result card ---
+// Reads the player's targeting grid into a row-major array of
+// "hit" | "miss" | null using only what the player can see (struck cells in
+// vs-AI mode, acked shots in online mode) — never the hidden enemy layout.
+function targetingGridState() {
+  const grid = Array.from({ length: BOARD_SIZE }, () =>
+    new Array(BOARD_SIZE).fill(null)
+  );
+  if (mode === "online") {
+    for (const [key, info] of enemyView.shots) {
+      const [r, c] = key.split(",").map(Number);
+      grid[r][c] = info.result === "hit" ? "hit" : "miss";
+    }
+  } else {
+    for (const key of game.aiBoard.shots) {
+      const [r, c] = key.split(",").map(Number);
+      grid[r][c] = game.aiBoard.shipAt(r, c) ? "hit" : "miss";
+    }
+  }
+  return grid;
+}
+
+function resultText() {
+  const accuracy = stats.shots
+    ? Math.round((stats.hits / stats.shots) * 100)
+    : 0;
+  const modeLabel =
+    mode === "online"
+      ? "Online"
+      : game.difficulty.charAt(0).toUpperCase() + game.difficulty.slice(1);
+  return buildResultText({
+    win: lastWin,
+    shots: stats.shots,
+    accuracy,
+    mode: modeLabel,
+    grid: targetingGridState(),
+    url: location.origin && location.origin !== "null" ? location.href : "",
+  });
+}
+
+// Copies the result summary to the clipboard, using the async Clipboard API
+// where available and falling back to a hidden textarea + execCommand("copy")
+// (older browsers, or non-secure contexts where navigator.clipboard is absent).
+async function copyResult() {
+  const text = resultText();
+  let ok = false;
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(text);
+      ok = true;
+    }
+  } catch {
+    ok = false;
+  }
+  if (!ok) ok = legacyCopy(text);
+  showCopyFeedback(ok);
+}
+
+function legacyCopy(text) {
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.setAttribute("readonly", "");
+  ta.style.position = "fixed";
+  ta.style.top = "-1000px";
+  ta.style.opacity = "0";
+  document.body.appendChild(ta);
+  ta.select();
+  let ok = false;
+  try {
+    ok = document.execCommand("copy");
+  } catch {
+    ok = false;
+  }
+  document.body.removeChild(ta);
+  return ok;
+}
+
+let copyFeedbackTimer = null;
+function showCopyFeedback(ok) {
+  els.copyFeedback.textContent = ok ? "Copied!" : "Press Ctrl+C to copy";
+  els.copyFeedback.classList.toggle("ok", ok);
+  clearTimeout(copyFeedbackTimer);
+  copyFeedbackTimer = setTimeout(() => {
+    els.copyFeedback.textContent = "";
+  }, 2200);
 }
 
 function resetAll() {
@@ -943,6 +1038,7 @@ function init() {
   els.startBtn.addEventListener("click", startBattle);
   els.aiBoard.addEventListener("click", handlePlayerShot);
   els.playAgainBtn.addEventListener("click", resetAll);
+  els.copyResultBtn.addEventListener("click", copyResult);
 
   markTrayPlaced();
 }

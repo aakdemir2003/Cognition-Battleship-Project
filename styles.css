@@ -1,17 +1,19 @@
 :root {
   --cell: 40px;
   --gap: 3px;
-  --bg: #0d1b2a;
-  --panel: #1b263b;
-  --sea: #2a4d6e;
-  --sea-light: #34618a;
+  /* Dusk-navy base so the boards read as lit water against a cool night sky. */
+  --bg: #081320;
+  --panel: #132238;
+  --sea: #21496c;
+  --sea-light: #2e5f8c;
   --ship: #5b6b7b;
   --ship-preview: #7a8a9a;
   --hit: #e63946;
-  --miss: #a8c0d6;
+  --miss: #acc4d8;
   --sunk: #8b1a23;
-  --accent: #ffd166;
-  --text: #e0e1dd;
+  /* Orange is the single warm accent; everything else stays cool navy. */
+  --accent: #ff9f43;
+  --text: #e6edf3;
 }
 
 /* Animatable custom properties driving the dynamic mood glow. Registering them
@@ -146,23 +148,24 @@ body::after {
     ),
     radial-gradient(
       ellipse at 50% 28%,
-      rgba(13, 27, 42, 0.35) 0%,
-      rgba(6, 12, 20, 0.82) 70%,
-      rgba(6, 12, 20, 0.92) 100%
+      rgba(8, 19, 34, 0.62) 0%,
+      rgba(5, 11, 20, 0.88) 70%,
+      rgba(4, 9, 16, 0.95) 100%
     );
   transition: --win-a 1.1s ease, --lose-a 1.1s ease, --scene-tint 0.8s ease;
 }
 
-/* Each difficulty washes the scene in its own colour: calm steel-blue for Easy,
-   warm amber for Medium, and an ominous red for Hard. */
+/* Each difficulty washes the scene a slightly different cool hue so the chosen
+   level is felt without warming the dusk-navy palette: steel-blue (Easy),
+   deep teal (Medium), and a dim crimson (Hard). */
 body.diff-easy {
-  --scene-tint: rgba(34, 96, 158, 0.26);
+  --scene-tint: rgba(38, 104, 168, 0.24);
 }
 body.diff-medium {
-  --scene-tint: rgba(176, 120, 42, 0.24);
+  --scene-tint: rgba(30, 118, 124, 0.22);
 }
 body.diff-hard {
-  --scene-tint: rgba(168, 38, 38, 0.3);
+  --scene-tint: rgba(146, 36, 46, 0.26);
 }
 
 /* Late-game "overtime": the war scene subtly intensifies (pulsing brightness)
@@ -577,13 +580,179 @@ button:disabled {
 }
 
 .board {
+  position: relative;
   display: grid;
   grid-template-columns: repeat(10, var(--cell));
   grid-template-rows: repeat(10, var(--cell));
   gap: var(--gap);
-  background: #0a141f;
+  background: #07111c;
   padding: var(--gap);
   border-radius: 6px;
+}
+
+/* --- Coordinate frame: A–J rows down the left, 1–10 across the top. The label
+   strips mirror the board's track sizing so each label lines up with its cell
+   at every responsive --cell size. --- */
+.board-frame {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto 1fr;
+  align-items: center;
+  justify-items: center;
+}
+.frame-corner {
+  grid-column: 1;
+  grid-row: 1;
+}
+.col-labels {
+  grid-column: 2;
+  grid-row: 1;
+  display: grid;
+  grid-template-columns: repeat(10, var(--cell));
+  gap: var(--gap);
+  padding: 0 var(--gap) 2px;
+}
+.row-labels {
+  grid-column: 1;
+  grid-row: 2;
+  display: grid;
+  grid-template-rows: repeat(10, var(--cell));
+  gap: var(--gap);
+  padding: var(--gap) 4px var(--gap) 0;
+}
+.board-frame .board {
+  grid-column: 2;
+  grid-row: 2;
+}
+.axis-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: #8aa6bf;
+}
+
+/* --- Ship sprites overlaid across a ship's cells. Positioned absolutely from
+   live cell offsets (see drawShipSprite). The base layer sits below hit/miss
+   markers on the player's board; the `.over` layer sits above them so a sunk
+   enemy ship's full silhouette is revealed on the targeting grid. --- */
+.ship-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+.ship-layer.over {
+  z-index: 3;
+}
+.ship-sprite {
+  position: absolute;
+  background: url("assets/ship-top.svg") center / 100% 100% no-repeat;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.55));
+}
+.ship-sprite.sunk {
+  filter: grayscale(0.5) brightness(0.72)
+    drop-shadow(0 0 4px rgba(230, 57, 70, 0.65));
+}
+/* Lift struck cells above the base ship layer so explosions/splashes stay
+   visible on top of the player's own ship sprites. */
+.cell.hit,
+.cell.miss {
+  z-index: 2;
+}
+
+/* The active board (your targeting grid on your turn) gets a pulsing accent
+   ring so it's obvious where to fire. */
+.board.targetable {
+  animation: board-pulse 1.8s ease-in-out infinite;
+}
+@keyframes board-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 2px rgba(255, 159, 67, 0.35),
+      0 0 10px rgba(255, 159, 67, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 0 2px rgba(255, 159, 67, 0.85),
+      0 0 22px rgba(255, 159, 67, 0.5);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .board.targetable {
+    animation: none;
+    box-shadow: 0 0 0 2px rgba(255, 159, 67, 0.6);
+  }
+}
+
+/* --- Battle log: a scrolling record of every shot with its coordinate. --- */
+.log-panel {
+  max-width: 560px;
+  margin: 22px auto 0;
+  padding: 0 12px;
+}
+.log-panel h2 {
+  text-align: center;
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin: 0 0 8px;
+}
+.battle-log {
+  list-style: none;
+  margin: 0 auto;
+  padding: 8px;
+  max-height: 150px;
+  overflow-y: auto;
+  background: rgba(8, 19, 32, 0.72);
+  border: 1px solid #1b3147;
+  border-radius: 6px;
+  font-size: 0.85rem;
+}
+.log-entry {
+  display: grid;
+  grid-template-columns: 64px 48px 1fr;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+.log-entry + .log-entry {
+  margin-top: 2px;
+}
+.log-entry:nth-child(odd) {
+  background: rgba(255, 255, 255, 0.03);
+}
+.log-who {
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+.log-you .log-who {
+  color: var(--accent);
+}
+.log-enemy .log-who {
+  color: #8aa6bf;
+}
+.log-coord {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 1px;
+  color: #cdddea;
+}
+.log-outcome {
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 1px;
+}
+.log-outcome.log-hit {
+  color: #ff7b6b;
+}
+.log-outcome.log-miss {
+  color: #7f97ac;
+}
+.log-outcome.log-sunk {
+  color: var(--hit);
+  font-weight: 700;
 }
 
 /* --- Fleet roster: a silhouette of each vessel on each side, dimmed when sunk.

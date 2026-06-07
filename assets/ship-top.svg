@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 20" preserveAspectRatio="none" role="img" aria-label="ship">
+  <defs>
+    <linearGradient id="hull" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#9fb1c2"/>
+      <stop offset="0.5" stop-color="#6c7d8e"/>
+      <stop offset="1" stop-color="#43505d"/>
+    </linearGradient>
+  </defs>
+  <!-- hull: rounded stern on the left, pointed bow on the right -->
+  <path d="M6 2 H86 L98 10 L86 18 H6 Q1 10 6 2 Z" fill="url(#hull)"
+        stroke="#2b3845" stroke-width="0.8"/>
+  <!-- deck line -->
+  <rect x="10" y="9" width="78" height="2" rx="1" fill="rgba(232,240,247,0.55)"/>
+  <!-- superstructure / bridge -->
+  <rect x="40" y="5.5" width="16" height="9" rx="1.4" fill="#37444f"/>
+  <!-- funnel -->
+  <rect x="58" y="6.5" width="7" height="7" rx="1" fill="#2b3640"/>
+  <!-- fore + aft gun turrets -->
+  <rect x="20" y="7" width="9" height="6" rx="1.4" fill="#46535f"/>
+  <rect x="72" y="7" width="9" height="6" rx="1.4" fill="#46535f"/>
+</svg>

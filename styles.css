@@ -26,6 +26,13 @@
   inherits: true;
   initial-value: 0;
 }
+/* Per-difficulty colour wash over the scene. Registered as a <color> so it
+   cross-fades smoothly when the player switches Easy / Medium / Hard. */
+@property --scene-tint {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: transparent;
+}
 
 * {
   box-sizing: border-box;
@@ -45,9 +52,78 @@ body::before {
   content: "";
   position: fixed;
   inset: 0;
-  z-index: -2;
+  z-index: -3;
   background: url("assets/battle-bg.svg") center / cover no-repeat,
     var(--bg);
+}
+
+/* Always-on animated layer of distant warships drifting across the horizon.
+   Sits above the static scene but below the dark scrim, so it stays subtle and
+   the boards remain readable. */
+.scene {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.drift-ship {
+  position: absolute;
+  background: url("assets/ship-silhouette.svg") center / contain no-repeat;
+  opacity: 0.55;
+  will-change: transform;
+}
+
+/* Four vessels at different sizes / heights / speeds for a parallax feel.
+   Odd ships sail right, even ships sail left (mirrored). */
+.ship-a {
+  width: 240px;
+  height: 72px;
+  top: 60%;
+  animation: drift-right 64s linear infinite;
+}
+.ship-b {
+  width: 170px;
+  height: 51px;
+  top: 66%;
+  opacity: 0.42;
+  animation: drift-left 86s linear infinite;
+  animation-delay: -20s;
+}
+.ship-c {
+  width: 300px;
+  height: 90px;
+  top: 55%;
+  opacity: 0.6;
+  animation: drift-right 104s linear infinite;
+  animation-delay: -50s;
+}
+.ship-d {
+  width: 130px;
+  height: 39px;
+  top: 69%;
+  opacity: 0.34;
+  animation: drift-left 73s linear infinite;
+  animation-delay: -38s;
+}
+
+@keyframes drift-right {
+  from {
+    transform: translateX(-22vw) scaleX(1);
+  }
+  to {
+    transform: translateX(122vw) scaleX(1);
+  }
+}
+
+@keyframes drift-left {
+  from {
+    transform: translateX(122vw) scaleX(-1);
+  }
+  to {
+    transform: translateX(-22vw) scaleX(-1);
+  }
 }
 /* Dark scrim plus the dynamic mood glow rising from the bottom: green when the
    player is ahead, red when behind. Both glows transition smoothly as the
@@ -57,7 +133,8 @@ body::after {
   position: fixed;
   inset: 0;
   z-index: -1;
-  background: radial-gradient(
+  background: linear-gradient(var(--scene-tint), var(--scene-tint)),
+    radial-gradient(
       ellipse at 50% 125%,
       rgba(46, 204, 113, var(--win-a)) 0%,
       transparent 60%
@@ -73,7 +150,19 @@ body::after {
       rgba(6, 12, 20, 0.82) 70%,
       rgba(6, 12, 20, 0.92) 100%
     );
-  transition: --win-a 1.1s ease, --lose-a 1.1s ease;
+  transition: --win-a 1.1s ease, --lose-a 1.1s ease, --scene-tint 0.8s ease;
+}
+
+/* Each difficulty washes the scene in its own colour: calm steel-blue for Easy,
+   warm amber for Medium, and an ominous red for Hard. */
+body.diff-easy {
+  --scene-tint: rgba(34, 96, 158, 0.26);
+}
+body.diff-medium {
+  --scene-tint: rgba(176, 120, 42, 0.24);
+}
+body.diff-hard {
+  --scene-tint: rgba(168, 38, 38, 0.3);
 }
 
 /* Late-game "overtime": the war scene subtly intensifies (pulsing brightness)
@@ -124,6 +213,11 @@ body.overtime .vignette {
   body.overtime .vignette {
     animation: none;
     opacity: 0.3;
+  }
+  /* Park the drifting ships in place rather than animating them. */
+  .drift-ship {
+    animation: none;
+    transform: translateX(40vw);
   }
 }
 

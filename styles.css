@@ -579,6 +579,20 @@ button:disabled {
   letter-spacing: 2px;
 }
 
+/* Tactical View toggle above the targeting grid. */
+.tactical-btn {
+  margin: 0 0 8px;
+  padding: 6px 14px;
+  font-size: 0.82rem;
+  background: transparent;
+  border: 1px solid var(--sea-light);
+}
+.tactical-btn.active {
+  background: var(--accent);
+  color: #0d1b2a;
+  border-color: var(--accent);
+}
+
 .board {
   position: relative;
   display: grid;
@@ -661,6 +675,21 @@ button:disabled {
 .cell.hit,
 .cell.miss {
   z-index: 2;
+}
+
+/* --- Tactical heatmap overlay (targeting grid only). A pure overlay layer of
+   warm tiles over unfired cells; pointer-events stay off so firing is
+   unaffected. Sits just above the water but below struck markers. --- */
+.heat-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+.heat-cell {
+  position: absolute;
+  border-radius: 3px;
+  transition: background 0.15s;
 }
 
 /* The active board (your targeting grid on your turn) gets a pulsing accent

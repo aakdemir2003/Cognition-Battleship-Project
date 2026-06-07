@@ -1,5 +1,5 @@
 :root {
-  --cell: 34px;
+  --cell: 32px;
   --gap: 3px;
   --bg: #0d1b2a;
   --panel: #1b263b;
@@ -223,17 +223,74 @@ body.overtime .vignette {
 
 header {
   text-align: center;
-  padding: 16px;
+  padding: 10px 16px 6px;
+}
+
+/* Logo banner modelled on the classic Battleship box wordmark: a black plate
+   with a gold tagline above bold condensed lettering. */
+.logo {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 26px 12px;
+  background: #05080d;
+  border: 2px solid #05080d;
+  border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.55);
+  animation: logo-glow 3.4s ease-in-out infinite;
+}
+
+.logo-tagline {
+  font-family: "Oswald", "Rajdhani", sans-serif;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 4px;
+  font-size: clamp(0.6rem, 2vw, 0.9rem);
+  color: var(--accent);
 }
 
 h1 {
   margin: 0;
-  font-family: "Black Ops One", "Rajdhani", sans-serif;
-  font-size: 2.6rem;
-  letter-spacing: 8px;
+  font-family: "Anton", "Black Ops One", sans-serif;
+  font-weight: 400;
+  font-size: clamp(2.6rem, 8vw, 4.4rem);
+  line-height: 0.92;
+  letter-spacing: 1px;
   text-transform: uppercase;
-  color: #f4e4c1;
-  text-shadow: 0 2px 0 #000, 0 0 18px rgba(255, 196, 110, 0.45);
+  /* White body with a cool cyan sheen toward the top, like the box art. */
+  background: linear-gradient(
+    180deg,
+    #e7f7ff 0%,
+    #bfe7ff 22%,
+    #ffffff 52%,
+    #e3f3ff 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  /* Thick dark outline drawn behind the fill (paint-order) for a clean edge. */
+  -webkit-text-stroke: 3px #05080d;
+  paint-order: stroke fill;
+}
+
+/* Pulsing glow on the whole logo plate. */
+@keyframes logo-glow {
+  0%,
+  100% {
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.55),
+      0 0 10px rgba(120, 200, 255, 0.25);
+  }
+  50% {
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.55),
+      0 0 26px rgba(120, 200, 255, 0.6);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .logo {
+    animation: none;
+  }
 }
 
 .status {
@@ -247,15 +304,15 @@ h1 {
 main {
   max-width: 980px;
   margin: 0 auto;
-  padding: 0 16px 40px;
+  padding: 0 16px 24px;
 }
 
 .panel {
   background: rgba(20, 32, 48, 0.82);
   border: 1px solid rgba(120, 160, 200, 0.18);
   border-radius: 10px;
-  padding: 16px;
-  margin-bottom: 20px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
   backdrop-filter: blur(3px);
 }
 
@@ -486,13 +543,13 @@ button:disabled {
 .boards {
   display: flex;
   flex-wrap: wrap;
-  gap: 28px;
+  gap: 18px;
   justify-content: center;
 }
 
 .board-wrap {
   position: relative;
-  padding-bottom: 52px;
+  padding-bottom: 44px;
 }
 
 .board-wrap h2 {
@@ -516,10 +573,10 @@ button:disabled {
 .fleet-roster {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 3px;
   width: max-content;
-  margin: 0 auto 10px;
-  padding: 8px 10px;
+  margin: 0 auto 6px;
+  padding: 5px 9px;
   background: #0d1b2a;
   border: 1px solid #1b3147;
   border-radius: 6px;
@@ -1009,5 +1066,23 @@ button:disabled {
   :root {
     --cell: 24px;
     --gap: 2px;
+  }
+}
+
+/* Short viewports (e.g. laptops): shrink the cells so the whole placement grid
+   fits on screen and the bottom rows stay reachable without long scrolling. */
+@media (max-height: 860px) {
+  :root {
+    --cell: 28px;
+  }
+}
+
+@media (max-height: 720px) {
+  :root {
+    --cell: 24px;
+    --gap: 2px;
+  }
+  header {
+    padding: 6px 16px 4px;
   }
 }

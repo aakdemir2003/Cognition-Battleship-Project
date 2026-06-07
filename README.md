@@ -1,8 +1,9 @@
 # Battleship vs. AI
 
-A polished, single-player [Battleship](https://en.wikipedia.org/wiki/Battleship_(game))
-game playable in the browser against an AI opponent. Plain HTML/CSS/JavaScript —
-no backend, no build step, no framework — so it deploys cleanly as a static site.
+A polished [Battleship](https://en.wikipedia.org/wiki/Battleship_(game)) game
+playable in the browser — against a built-in AI opponent, or head-to-head
+online against another player. Plain HTML/CSS/JavaScript — no backend, no build
+step, no framework — so it deploys cleanly as a static site.
 
 **Play it live:** _(GitHub Pages URL added on deploy)_
 
@@ -34,6 +35,25 @@ Any static server works (`npx serve`, VS Code Live Server, etc.).
    announced and shaded darker.
 5. Destroy the entire enemy fleet to win — or lose if yours is sunk first.
    **Play Again** fully resets the game.
+
+## Online multiplayer (two players)
+
+Switch the **Mode** toggle to **vs Player (online)** to play another person
+instead of the AI:
+
+1. One player clicks **Create game** and shares the 4-character room code.
+2. The other player types the code and clicks **Join**.
+3. Both place their fleets and click **Start Battle**; play begins once both are
+   ready. Turns alternate, and each player only sees what their shots reveal on
+   the opponent's board (fog of war).
+
+**Transport.** The site stays fully static. Cross-device play uses
+[Firebase Realtime Database](https://firebase.google.com/docs/database) — paste
+your project's `firebaseConfig` into [`src/firebase-config.js`](./src/firebase-config.js)
+(these web-config values are public by design; access is gated by database
+security rules). Until a config is provided, online mode falls back to a
+same-device, cross-tab backend (via `localStorage`) so the flow is fully
+playable and testable by opening two browser tabs on one machine.
 
 ### Fleet
 
@@ -86,6 +106,13 @@ hunt after a sink).
   - `src/game.js` — `Game` ties the two boards + AI together and tracks turns.
     UI-agnostic so it's driven by both the DOM and the tests.
   - `src/main.js` — DOM rendering and input wiring only.
+  - `src/net.js` — transport abstraction exposing a uniform `Room` API over two
+    interchangeable backends: Firebase Realtime Database (cross-device) and
+    `localStorage` (same-device, cross-tab fallback).
+  - `src/online.js` — `OnlineMatch`, the 1v1 state machine (create/join, ready
+    sync, turn alternation, authoritative own-board shot/ack handshake).
+  - `src/firebase-config.js` — placeholder for the user-supplied Firebase web
+    config (`null` until provided).
   - `index.html` / `styles.css` — markup and styling.
 - **No framework / no bundler.** Source is split into ES modules and loaded with
   `<script type="module">`. This keeps it trivially deployable to any static

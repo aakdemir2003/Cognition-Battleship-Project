@@ -457,6 +457,9 @@ function applyDifficultyUi(difficulty) {
     btn.classList.toggle("active", btn.dataset.difficulty === difficulty);
   });
   els.difficultyDesc.textContent = DIFFICULTY_DESC[difficulty];
+  // Tint the backdrop to match the chosen difficulty.
+  document.body.classList.remove("diff-easy", "diff-medium", "diff-hard");
+  document.body.classList.add(`diff-${difficulty}`);
 }
 
 // --- Wiring ---

@@ -419,6 +419,16 @@ kbd {
   border-radius: 6px;
 }
 
+.cancel-room-btn {
+  background: rgba(120, 28, 28, 0.85);
+  border: 1px solid var(--danger, #d9534f);
+}
+
+.cancel-room-btn:hover:not(:disabled) {
+  background: var(--danger, #d9534f);
+  color: #0d1b2a;
+}
+
 .online-status {
   margin-top: 10px;
   font-size: 0.9rem;

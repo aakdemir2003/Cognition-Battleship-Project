@@ -80,6 +80,22 @@ export class OnlineMatch {
     this.room.close();
   }
 
+  // Tear down a room from the setup/waiting screen without reloading the page.
+  // Detach our listeners first so we don't react to the teardown writes. The
+  // host removes the whole room (after marking itself absent so a connected
+  // guest still gets a peer-left signal); a guest just drops its presence.
+  cancel() {
+    this.unsubs.forEach((u) => u());
+    this.unsubs = [];
+    if (this.role === "host") {
+      this.room.update({ "players/host/present": false });
+      this.room.set("", null);
+    } else {
+      this.room.update({ "players/guest/present": false });
+    }
+    this.room.close();
+  }
+
   _subscribe() {
     this.unsubs.push(this.room.onValue("players", (p) => this._onPlayers(p)));
     this.unsubs.push(this.room.onValue("meta", (m) => this._onMeta(m)));

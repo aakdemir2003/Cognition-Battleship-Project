@@ -41,6 +41,7 @@ const els = {
   createGameBtn: document.getElementById("create-game-btn"),
   joinCodeInput: document.getElementById("join-code-input"),
   joinGameBtn: document.getElementById("join-game-btn"),
+  cancelRoomBtn: document.getElementById("cancel-room-btn"),
   onlineStatus: document.getElementById("online-status"),
 };
 
@@ -582,6 +583,35 @@ function setOnlineStatus(text) {
   els.onlineStatus.textContent = text;
 }
 
+// Toggle the room-setup controls: while a room is active the create/join inputs
+// are disabled and a Cancel button is shown so the player can tear it down
+// without reloading the page.
+function showRoomControls(roomActive) {
+  els.createGameBtn.disabled = roomActive;
+  els.joinGameBtn.disabled = roomActive;
+  els.joinCodeInput.disabled = roomActive;
+  els.cancelRoomBtn.classList.toggle("hidden", !roomActive);
+}
+
+// Leave/cancel the current room and return to the online setup screen without
+// reloading. Removes the room from the backend (host) or drops presence
+// (guest), detaches listeners, and re-enables the create/join controls.
+function cancelRoom() {
+  if (!online) return;
+  online.cancel();
+  online = null;
+  onlineMyTurn = false;
+  els.joinCodeInput.value = "";
+  showRoomControls(false);
+  setOnlineStatus(
+    isCloudConfigured()
+      ? "Room cancelled. Create a game and share the code, or join with a friend's code."
+      : "Room cancelled. Create a game and share the code, or join with a friend's code. " +
+          "(Cloud not configured yet — currently same-device only.)"
+  );
+  updateStartEnabled();
+}
+
 function genRoomCode() {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no ambiguous chars
   let code = "";
@@ -605,9 +635,7 @@ async function createOnlineGame() {
         ? "Waiting for them to join\u2026"
         : "(Local mode: open a second tab on this machine and join with this code.)")
   );
-  els.createGameBtn.disabled = true;
-  els.joinGameBtn.disabled = true;
-  els.joinCodeInput.disabled = true;
+  showRoomControls(true);
   updateStartEnabled();
 }
 
@@ -631,9 +659,7 @@ async function joinOnlineGame() {
     return;
   }
   setOnlineStatus("Connected! Place your fleet and press Start Battle.");
-  els.createGameBtn.disabled = true;
-  els.joinGameBtn.disabled = true;
-  els.joinCodeInput.disabled = true;
+  showRoomControls(true);
   updateStartEnabled();
 }
 
@@ -702,10 +728,8 @@ function setMode(next) {
   const isOnline = next === "online";
   els.difficultyWrap.classList.toggle("hidden", isOnline);
   els.onlinePanel.classList.toggle("hidden", !isOnline);
+  showRoomControls(false);
   if (isOnline) {
-    els.createGameBtn.disabled = false;
-    els.joinGameBtn.disabled = false;
-    els.joinCodeInput.disabled = false;
     els.joinCodeInput.value = "";
     setOnlineStatus(
       isCloudConfigured()
@@ -757,6 +781,7 @@ function init() {
   els.joinGameBtn.addEventListener("click", () => {
     joinOnlineGame().catch(() => setOnlineStatus("Could not join game."));
   });
+  els.cancelRoomBtn.addEventListener("click", cancelRoom);
 
   els.rotateBtn.addEventListener("click", () => {
     orientation =

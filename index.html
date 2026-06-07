@@ -30,7 +30,14 @@
       <!-- Placement controls -->
       <section id="setup" class="panel">
         <h2>Deploy your fleet</h2>
-        <div class="difficulty">
+        <div class="mode">
+          <span class="difficulty-label">Mode:</span>
+          <div id="mode-group" class="difficulty-group" role="group" aria-label="Game mode">
+            <button type="button" class="mode-btn active" data-mode="ai">vs Computer</button>
+            <button type="button" class="mode-btn" data-mode="online">vs Player (online)</button>
+          </div>
+        </div>
+        <div id="difficulty-wrap" class="difficulty">
           <span class="difficulty-label">AI difficulty:</span>
           <div id="difficulty-group" class="difficulty-group" role="group" aria-label="AI difficulty">
             <button type="button" class="diff-btn" data-difficulty="easy">Easy</button>
@@ -38,6 +45,16 @@
             <button type="button" class="diff-btn" data-difficulty="hard">Hard</button>
           </div>
           <span id="difficulty-desc" class="difficulty-desc"></span>
+        </div>
+        <div id="online-panel" class="online-panel hidden">
+          <div class="online-actions">
+            <button id="create-game-btn" type="button">Create game</button>
+            <span class="online-or">or</span>
+            <input id="join-code-input" class="join-code-input" maxlength="4"
+              autocomplete="off" autocapitalize="characters" placeholder="CODE" />
+            <button id="join-game-btn" type="button">Join</button>
+          </div>
+          <p id="online-status" class="online-status"></p>
         </div>
         <p class="hint">
           Drag a ship onto your board. Press <kbd>R</kbd> or click

@@ -313,6 +313,62 @@ kbd {
   opacity: 0.8;
 }
 
+/* --- Mode toggle + online multiplayer panel --- */
+.mode {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 12px 0 4px;
+}
+
+.mode-btn {
+  background: var(--panel);
+  border-radius: 0;
+  padding: 8px 16px;
+}
+
+.mode-btn.active {
+  background: var(--accent);
+  color: #0d1b2a;
+  font-weight: 700;
+}
+
+.online-panel {
+  margin: 12px 0 4px;
+}
+
+.online-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.online-or {
+  opacity: 0.7;
+}
+
+.join-code-input {
+  width: 6.5rem;
+  padding: 8px 12px;
+  font-family: "Black Ops One", system-ui, sans-serif;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  text-align: center;
+  background: rgba(8, 18, 30, 0.7);
+  color: var(--text);
+  border: 1px solid var(--sea-light);
+  border-radius: 6px;
+}
+
+.online-status {
+  margin-top: 10px;
+  font-size: 0.9rem;
+  opacity: 0.9;
+  min-height: 1.2em;
+}
+
 .ship-tray {
   display: flex;
   flex-wrap: wrap;

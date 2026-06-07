@@ -3,6 +3,8 @@ import { shipCells } from "./board.js";
 import { Game, PHASE } from "./game.js";
 import { DIFFICULTY } from "./ai.js";
 import { launchStrike, launchConfetti } from "./effects.js";
+import { OnlineMatch } from "./online.js";
+import { isCloudConfigured } from "./net.js";
 
 const DIFFICULTY_DESC = {
   [DIFFICULTY.EASY]: "Fires at random — never repeats a shot.",
@@ -33,6 +35,13 @@ const els = {
   enemyPad: document.getElementById("enemy-pad"),
   playerRoster: document.getElementById("player-roster"),
   enemyRoster: document.getElementById("enemy-roster"),
+  modeGroup: document.getElementById("mode-group"),
+  difficultyWrap: document.getElementById("difficulty-wrap"),
+  onlinePanel: document.getElementById("online-panel"),
+  createGameBtn: document.getElementById("create-game-btn"),
+  joinCodeInput: document.getElementById("join-code-input"),
+  joinGameBtn: document.getElementById("join-game-btn"),
+  onlineStatus: document.getElementById("online-status"),
 };
 
 // True while a strike animation is in flight, to block further input until the
@@ -42,6 +51,18 @@ let busy = false;
 // Placement UI state.
 let orientation = ORIENTATION.HORIZONTAL;
 let draggingShip = null; // { name, size }
+
+// --- Online multiplayer state ---
+// mode is "ai" (vs computer) or "online" (1v1 over the network).
+let mode = "ai";
+let online = null; // OnlineMatch instance while in online mode
+let onlineMyTurn = false;
+// Fog-of-war view of the opponent's board: only what their acks have revealed.
+let enemyView = { shots: new Map(), sunkShips: new Set(), sunkCells: new Map() };
+
+function resetEnemyView() {
+  enemyView = { shots: new Map(), sunkShips: new Set(), sunkCells: new Map() };
+}
 
 function setStatus(text) {
   els.status.textContent = text;
@@ -168,7 +189,40 @@ function updateRosters() {
     });
   };
   mark(els.playerRoster, game.playerBoard);
-  mark(els.enemyRoster, game.aiBoard);
+  if (mode === "online") {
+    // Enemy ships are hidden; mark sunk only from acked sinkings.
+    els.enemyRoster.querySelectorAll(".roster-ship").forEach((row) => {
+      row.classList.toggle("sunk", enemyView.sunkShips.has(row.dataset.name));
+    });
+  } else {
+    mark(els.enemyRoster, game.aiBoard);
+  }
+}
+
+// Renders the targeting grid in online mode from the fog-of-war enemy view:
+// hits/misses we've been told about, plus a revealed hull for any sunk ship.
+function renderEnemyView() {
+  for (let r = 0; r < BOARD_SIZE; r++) {
+    for (let c = 0; c < BOARD_SIZE; c++) {
+      cellAt(els.aiBoard, r, c).className = "cell";
+    }
+  }
+  for (const [key, info] of enemyView.shots) {
+    const [r, c] = key.split(",").map(Number);
+    const cell = cellAt(els.aiBoard, r, c);
+    cell.classList.add(info.result === "hit" ? "hit" : "miss");
+  }
+  for (const [, cells] of enemyView.sunkCells) {
+    cells.forEach(([r, c], i) => {
+      const cell = cellAt(els.aiBoard, r, c);
+      const horiz = cells.length > 1 && cells[0][0] === cells[1][0];
+      cell.classList.add("ship", horiz ? "ship-h" : "ship-v", "hit", "sunk");
+      const seg =
+        i === 0 ? "ship-bow" : i === cells.length - 1 ? "ship-stern" : "ship-mid";
+      cell.classList.add(seg);
+    });
+  }
+  updateRosters();
 }
 
 // --- Dynamic background: tint by who's ahead + late-game "overtime" pulse ---
@@ -180,7 +234,9 @@ function shipsRemaining(board) {
 // pulsing "overtime" atmosphere once either fleet is nearly destroyed.
 function updateAtmosphere() {
   const inBattle =
-    game.phase === PHASE.PLAYER_TURN || game.phase === PHASE.AI_TURN;
+    mode === "online"
+      ? !!(online && online.started && !online.ended)
+      : game.phase === PHASE.PLAYER_TURN || game.phase === PHASE.AI_TURN;
 
   if (!inBattle) {
     document.body.style.setProperty("--win-a", "0");
@@ -190,7 +246,10 @@ function updateAtmosphere() {
   }
 
   const playerLeft = shipsRemaining(game.playerBoard);
-  const enemyLeft = shipsRemaining(game.aiBoard);
+  const enemyLeft =
+    mode === "online"
+      ? SHIPS.length - enemyView.sunkShips.size
+      : shipsRemaining(game.aiBoard);
   // Positive when the player is ahead (has sunk more enemy ships than lost).
   const lead = playerLeft - enemyLeft;
   const intensity = Math.min(0.12 + Math.abs(lead) * 0.11, 0.5);
@@ -236,7 +295,14 @@ function markTrayPlaced() {
     );
     el.dataset.placed = placed ? "true" : "false";
   });
-  els.startBtn.disabled = !game.playerBoard.allShipsPlaced();
+  updateStartEnabled();
+}
+
+// In AI mode, Start needs a full fleet. In online mode it also needs an active
+// room (created or joined) so there is an opponent channel to be "ready" on.
+function updateStartEnabled() {
+  const fleetReady = game.playerBoard.allShipsPlaced();
+  els.startBtn.disabled = !fleetReady || (mode === "online" && !online);
 }
 
 // --- Placement: pointer-based drag & drop onto player board ---
@@ -328,6 +394,7 @@ function onDragEnd(e) {
 
 // --- Firing ---
 function handlePlayerShot(e) {
+  if (mode === "online") return handleOnlineShot(e);
   if (game.phase !== PHASE.PLAYER_TURN || busy) return;
   const cell = e.target.closest(".cell");
   if (!cell) return;
@@ -410,8 +477,174 @@ function updateTurnUi() {
   }
 }
 
+// --- Online firing ---
+function handleOnlineShot(e) {
+  if (!online || !onlineMyTurn || busy) return;
+  const cell = e.target.closest(".cell");
+  if (!cell) return;
+  const row = +cell.dataset.row;
+  const col = +cell.dataset.col;
+  if (enemyView.shots.has(`${row},${col}`)) return; // never fire twice
+
+  busy = true;
+  onlineMyTurn = false;
+  els.aiBoard.classList.remove("targetable");
+  setStatus("Firing\u2026");
+  online.fire(row, col); // result arrives via the match's `result` handler
+}
+
+// Builds the OnlineMatch event handlers that drive the DOM.
+function makeOnlineHandlers() {
+  return {
+    peerJoined() {
+      setOnlineStatus("Opponent connected. Place your fleet and press Start Battle.");
+    },
+    peerLeft() {
+      if (!online || online.ended) return;
+      setStatus("Opponent disconnected.");
+      setOnlineStatus("Opponent left the game.");
+    },
+    start(myTurn) {
+      onlineMyTurn = myTurn;
+      els.setup.classList.add("hidden");
+      els.endScreen.classList.add("hidden");
+      renderPlayerBoard();
+      renderEnemyView();
+      updateAtmosphere();
+      setStatus(
+        myTurn ? "Your turn — fire at the targeting grid!" : "Opponent's turn\u2026"
+      );
+      els.aiBoard.classList.toggle("targetable", myTurn);
+    },
+    // It's my turn to fire (true) or the opponent's (false).
+    turn(myTurn) {
+      onlineMyTurn = myTurn;
+      if (busy) return; // a strike is mid-flight; status updates after it lands
+      els.aiBoard.classList.toggle("targetable", myTurn);
+      setStatus(myTurn ? "Your turn — fire!" : "Opponent's turn\u2026");
+    },
+    // Opponent fired at me (defender): render the incoming strike on my fleet.
+    incoming(row, col, res) {
+      launchStrike({
+        targetCell: cellAt(els.playerBoard, row, col),
+        originEl: els.enemyPad,
+        side: "enemy",
+        hit: res.result === "hit",
+      }).then(() => {
+        renderPlayerBoard();
+        updateAtmosphere();
+        announceShot(res, "Enemy");
+      });
+    },
+    // Opponent acked my shot (shooter): render the result on the targeting grid.
+    result(row, col, res) {
+      enemyView.shots.set(`${row},${col}`, { result: res.result });
+      if (res.sunk && res.shipName) {
+        enemyView.sunkShips.add(res.shipName);
+        if (res.shipCells) enemyView.sunkCells.set(res.shipName, res.shipCells);
+      }
+      launchStrike({
+        targetCell: cellAt(els.aiBoard, row, col),
+        originEl: els.playerPad,
+        side: "player",
+        hit: res.result === "hit",
+      }).then(() => {
+        renderEnemyView();
+        updateAtmosphere();
+        announceShot(
+          { result: res.result, sunk: res.sunk, ship: { name: res.shipName } },
+          "You"
+        );
+        busy = false;
+        if (online && !online.ended) {
+          els.aiBoard.classList.toggle("targetable", onlineMyTurn);
+          if (!onlineMyTurn) setStatus("Opponent's turn\u2026");
+        }
+      });
+    },
+    gameOver(iWon) {
+      busy = false;
+      onlineMyTurn = false;
+      els.aiBoard.classList.remove("targetable");
+      updateAtmosphere();
+      els.endTitle.textContent = iWon ? "Victory!" : "Defeat";
+      els.endMessage.textContent = iWon
+        ? "You destroyed the enemy fleet."
+        : "Your fleet was sunk.";
+      els.endScreen.classList.remove("hidden");
+      setStatus(iWon ? "You win!" : "You lose.");
+      if (iWon) launchConfetti();
+    },
+  };
+}
+
+function setOnlineStatus(text) {
+  els.onlineStatus.textContent = text;
+}
+
+function genRoomCode() {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no ambiguous chars
+  let code = "";
+  for (let i = 0; i < 4; i++)
+    code += alphabet[Math.floor(Math.random() * alphabet.length)];
+  return code;
+}
+
+async function createOnlineGame() {
+  const code = genRoomCode();
+  online = new OnlineMatch({
+    code,
+    role: "host",
+    getOwnBoard: () => game.playerBoard,
+    on: makeOnlineHandlers(),
+  });
+  await online.create();
+  setOnlineStatus(
+    `Game code: ${code} — share it with your opponent. ` +
+      (online.isCloud()
+        ? "Waiting for them to join\u2026"
+        : "(Local mode: open a second tab on this machine and join with this code.)")
+  );
+  els.createGameBtn.disabled = true;
+  els.joinGameBtn.disabled = true;
+  els.joinCodeInput.disabled = true;
+  updateStartEnabled();
+}
+
+async function joinOnlineGame() {
+  const code = (els.joinCodeInput.value || "").trim().toUpperCase();
+  if (code.length < 4) {
+    setOnlineStatus("Enter the 4-character game code.");
+    return;
+  }
+  online = new OnlineMatch({
+    code,
+    role: "guest",
+    getOwnBoard: () => game.playerBoard,
+    on: makeOnlineHandlers(),
+  });
+  const ok = await online.join();
+  if (!ok) {
+    online = null;
+    setOnlineStatus("No open game found with that code.");
+    return;
+  }
+  setOnlineStatus("Connected! Place your fleet and press Start Battle.");
+  els.createGameBtn.disabled = true;
+  els.joinGameBtn.disabled = true;
+  els.joinCodeInput.disabled = true;
+  updateStartEnabled();
+}
+
 // --- Game start / end / reset ---
 function startBattle() {
+  if (mode === "online") {
+    if (!online || !game.playerBoard.allShipsPlaced()) return;
+    online.setReady();
+    els.setup.classList.add("hidden");
+    setStatus("Waiting for opponent to be ready\u2026");
+    return;
+  }
   game.startBattle();
   els.setup.classList.add("hidden");
   els.aiBoard.classList.add("targetable");
@@ -434,6 +667,12 @@ function endGame() {
 }
 
 function resetAll() {
+  if (online) {
+    online.leave();
+    online = null;
+  }
+  onlineMyTurn = false;
+  resetEnemyView();
   game.reset();
   orientation = ORIENTATION.HORIZONTAL;
   draggingShip = null;
@@ -441,6 +680,8 @@ function resetAll() {
   els.endScreen.classList.add("hidden");
   els.setup.classList.remove("hidden");
   els.aiBoard.classList.remove("targetable");
+  // Return to single-player by default after a match.
+  setMode("ai");
   updateAtmosphere();
   buildTray();
   buildRosters();
@@ -449,6 +690,32 @@ function resetAll() {
   renderAiBoard();
   markTrayPlaced();
   setStatus("Place your fleet to begin.");
+}
+
+// Switches between vs-Computer and online modes, toggling the relevant panels.
+function setMode(next) {
+  mode = next;
+  els.modeGroup.querySelectorAll(".mode-btn").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.mode === next);
+  });
+  const isOnline = next === "online";
+  els.difficultyWrap.classList.toggle("hidden", isOnline);
+  els.onlinePanel.classList.toggle("hidden", !isOnline);
+  if (isOnline) {
+    els.createGameBtn.disabled = false;
+    els.joinGameBtn.disabled = false;
+    els.joinCodeInput.disabled = false;
+    els.joinCodeInput.value = "";
+    setOnlineStatus(
+      isCloudConfigured()
+        ? "Create a game and share the code, or join with a friend's code."
+        : "Create a game and share the code, or join with a friend's code. " +
+            "(Cloud not configured yet — currently same-device only.)"
+    );
+  } else {
+    setOnlineStatus("");
+  }
+  updateStartEnabled();
 }
 
 // Highlights the active difficulty button and updates the description.
@@ -475,6 +742,19 @@ function init() {
     if (!btn || game.phase !== PHASE.PLACEMENT) return;
     game.setDifficulty(btn.dataset.difficulty);
     applyDifficultyUi(game.difficulty);
+  });
+
+  els.modeGroup.addEventListener("click", (e) => {
+    const btn = e.target.closest(".mode-btn");
+    if (!btn || online) return; // can't switch mode mid-room
+    setMode(btn.dataset.mode);
+  });
+
+  els.createGameBtn.addEventListener("click", () => {
+    createOnlineGame().catch(() => setOnlineStatus("Could not create game."));
+  });
+  els.joinGameBtn.addEventListener("click", () => {
+    joinOnlineGame().catch(() => setOnlineStatus("Could not join game."));
   });
 
   els.rotateBtn.addEventListener("click", () => {

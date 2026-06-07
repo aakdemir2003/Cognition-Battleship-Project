@@ -755,6 +755,33 @@ button:disabled {
   font-weight: 700;
 }
 
+/* Enemy admiral commentary: a distinct full-width italic line so it reads as
+   speech rather than another shot record. */
+.log-quip {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 3px 8px 5px;
+  font-style: italic;
+  color: #c4b48c;
+  border-left: 2px solid var(--accent);
+  background: rgba(255, 159, 67, 0.06);
+  border-radius: 0 4px 4px 0;
+}
+.log-quip + .log-entry,
+.log-entry + .log-quip {
+  margin-top: 2px;
+}
+.quip-admiral {
+  color: var(--accent);
+  font-style: normal;
+  flex: 0 0 auto;
+}
+.quip-text {
+  font-size: 0.82rem;
+  line-height: 1.25;
+}
+
 /* --- Fleet roster: a silhouette of each vessel on each side, dimmed when sunk.
    Laid out as a single horizontal row of vessels to keep it compact and reclaim
    vertical space for the (larger) board below. */

@@ -6,6 +6,7 @@ import { launchStrike, launchConfetti } from "./effects.js";
 import { OnlineMatch } from "./online.js";
 import { isCloudConfigured } from "./net.js";
 import { buildResultText } from "./share.js";
+import { createCommentator, eventFor } from "./commentary.js";
 
 const DIFFICULTY_DESC = {
   [DIFFICULTY.EASY]: "Fires at random — never repeats a shot.",
@@ -135,6 +136,23 @@ function logShot(who, row, col, res) {
 
 function clearBattleLog() {
   els.battleLog.innerHTML = "";
+}
+
+// The enemy admiral's running commentary. Quips are styled distinctly from the
+// shot history so they don't clutter it. Only used in vs-Computer mode.
+const commentator = createCommentator();
+
+function logQuip(who, res) {
+  const event = eventFor(who, res);
+  const line = commentator.quip(game.difficulty, event);
+  if (!line) return;
+  const li = document.createElement("li");
+  li.className = "log-quip";
+  li.innerHTML =
+    `<span class="quip-admiral" aria-hidden="true">\u2693</span>` +
+    `<span class="quip-text">${line}</span>`;
+  els.battleLog.appendChild(li);
+  els.battleLog.scrollTop = els.battleLog.scrollHeight;
 }
 
 // --- Board rendering ---
@@ -536,6 +554,7 @@ function handlePlayerShot(e) {
     stats.shots++;
     if (res.result === "hit") stats.hits++;
     logShot("You", row, col, res);
+    logQuip("You", res);
     announceShot(res, "You");
     if (game.phase === PHASE.OVER) {
       busy = false;
@@ -567,6 +586,7 @@ function aiTurn() {
     renderPlayerBoard();
     updateAtmosphere();
     logShot("Enemy", res.row, res.col, res);
+    logQuip("Enemy", res);
     announceShot(res, "Enemy");
     if (game.phase === PHASE.OVER) {
       busy = false;

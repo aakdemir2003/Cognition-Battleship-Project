@@ -579,6 +579,20 @@ button:disabled {
   letter-spacing: 2px;
 }
 
+/* Tactical View toggle above the targeting grid. */
+.tactical-btn {
+  margin: 0 0 8px;
+  padding: 6px 14px;
+  font-size: 0.82rem;
+  background: transparent;
+  border: 1px solid var(--sea-light);
+}
+.tactical-btn.active {
+  background: var(--accent);
+  color: #0d1b2a;
+  border-color: var(--accent);
+}
+
 .board {
   position: relative;
   display: grid;
@@ -661,6 +675,21 @@ button:disabled {
 .cell.hit,
 .cell.miss {
   z-index: 2;
+}
+
+/* --- Tactical heatmap overlay (targeting grid only). A pure overlay layer of
+   warm tiles over unfired cells; pointer-events stay off so firing is
+   unaffected. Sits just above the water but below struck markers. --- */
+.heat-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+.heat-cell {
+  position: absolute;
+  border-radius: 3px;
+  transition: background 0.15s;
 }
 
 /* The active board (your targeting grid on your turn) gets a pulsing accent
@@ -753,6 +782,33 @@ button:disabled {
 .log-outcome.log-sunk {
   color: var(--hit);
   font-weight: 700;
+}
+
+/* Enemy admiral commentary: a distinct full-width italic line so it reads as
+   speech rather than another shot record. */
+.log-quip {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 3px 8px 5px;
+  font-style: italic;
+  color: #c4b48c;
+  border-left: 2px solid var(--accent);
+  background: rgba(255, 159, 67, 0.06);
+  border-radius: 0 4px 4px 0;
+}
+.log-quip + .log-entry,
+.log-entry + .log-quip {
+  margin-top: 2px;
+}
+.quip-admiral {
+  color: var(--accent);
+  font-style: normal;
+  flex: 0 0 auto;
+}
+.quip-text {
+  font-size: 0.82rem;
+  line-height: 1.25;
 }
 
 /* --- Fleet roster: a silhouette of each vessel on each side, dimmed when sunk.
@@ -958,6 +1014,35 @@ button:disabled {
   max-width: 80%;
   margin: 0 auto 22px;
   opacity: 0.95;
+}
+
+/* End-screen action row: Copy result + Play Again side by side. */
+.end-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+#copy-result-btn {
+  background: transparent;
+  border: 1px solid var(--sea-light);
+}
+#copy-result-btn:hover:not(:disabled) {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.copy-feedback {
+  display: block;
+  min-height: 1.1em;
+  margin-top: 10px;
+  font-size: 0.82rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #8aa6bf;
+}
+.copy-feedback.ok {
+  color: var(--accent);
+  font-weight: 700;
 }
 
 /* Small persistent Cognition credit in the corner. */

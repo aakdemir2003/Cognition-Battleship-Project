@@ -46,3 +46,24 @@ root cause, fix.
 - **Fix:** Added `position: relative` to `.board` so both the cells and the
   `.ship-layer` share the same coordinate origin; sprite geometry is then read
   from live cell offsets and stays correct at every responsive `--cell` size.
+
+---
+
+## 4. Tactical heatmap overlay displaced the grid / would have blocked firing (Tactical View feature)
+
+- **Symptom:** First attempt at the Tactical View overlay appended shaded tiles
+  directly into the `.board` (a CSS grid). The extra elements were laid out as
+  grid items, pushing the real cells out of their tracks and distorting the
+  board; tinting cells in place also meant the overlay sat on top of the
+  clickable cells and would have swallowed firing clicks.
+- **Root cause:** `.board` is `display: grid`, so any normal-flow child becomes
+  a grid item and consumes a track. An in-flow/interactive overlay also competes
+  with the cells for pointer events.
+- **Fix:** Render the heatmap into a dedicated `.heat-layer` that is
+  `position: absolute; inset: 0; pointer-events: none` (mirroring the existing
+  `.ship-layer` pattern), with each `.heat-cell` absolutely positioned from live
+  `cell.offsetLeft/offsetTop`. Being out of flow, it never displaces the grid;
+  being `pointer-events: none`, every click passes through to the cell beneath,
+  so the overlay stays a pure presentation layer that can't affect firing or
+  game state. Verified in-browser: toggling on/off leaves the grid and firing
+  untouched.

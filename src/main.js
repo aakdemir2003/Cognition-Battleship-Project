@@ -5,6 +5,9 @@ import { DIFFICULTY } from "./ai.js";
 import { launchStrike, launchConfetti } from "./effects.js";
 import { OnlineMatch } from "./online.js";
 import { isCloudConfigured } from "./net.js";
+import { buildResultText } from "./share.js";
+import { createCommentator, eventFor } from "./commentary.js";
+import { computeHeatmap } from "./heatmap.js";
 
 const DIFFICULTY_DESC = {
   [DIFFICULTY.EASY]: "Fires at random — never repeats a shot.",
@@ -33,6 +36,9 @@ const els = {
   statShots: document.getElementById("stat-shots"),
   statAccuracy: document.getElementById("stat-accuracy"),
   playAgainBtn: document.getElementById("play-again-btn"),
+  copyResultBtn: document.getElementById("copy-result-btn"),
+  copyFeedback: document.getElementById("copy-feedback"),
+  tacticalBtn: document.getElementById("tactical-btn"),
   battleLog: document.getElementById("battle-log"),
   playerColLabels: document.getElementById("player-col-labels"),
   playerRowLabels: document.getElementById("player-row-labels"),
@@ -74,6 +80,12 @@ function resetEnemyView() {
 
 // Player shot accuracy tally for the end-game summary.
 let stats = { shots: 0, hits: 0 };
+
+// Whether the player won the last finished game (for the shareable result card).
+let lastWin = false;
+
+// Tactical heatmap overlay toggle (a pure presentation aid on the targeting grid).
+let tacticalView = false;
 
 function setStatus(text) {
   els.status.textContent = text;
@@ -129,6 +141,23 @@ function logShot(who, row, col, res) {
 
 function clearBattleLog() {
   els.battleLog.innerHTML = "";
+}
+
+// The enemy admiral's running commentary. Quips are styled distinctly from the
+// shot history so they don't clutter it. Only used in vs-Computer mode.
+const commentator = createCommentator();
+
+function logQuip(who, res) {
+  const event = eventFor(who, res);
+  const line = commentator.quip(game.difficulty, event);
+  if (!line) return;
+  const li = document.createElement("li");
+  li.className = "log-quip";
+  li.innerHTML =
+    `<span class="quip-admiral" aria-hidden="true">\u2693</span>` +
+    `<span class="quip-text">${line}</span>`;
+  els.battleLog.appendChild(li);
+  els.battleLog.scrollTop = els.battleLog.scrollHeight;
 }
 
 // --- Board rendering ---
@@ -267,6 +296,7 @@ function renderAiBoard() {
   // Reveal the full ship silhouette (above the red hit cells) for sunk ships.
   renderShipSprites(els.aiBoard, sunkShips, { over: true, sunk: true });
   updateRosters();
+  renderHeatmap();
 }
 
 // --- Fleet rosters: a ship silhouette per vessel on each side, dimmed when sunk.
@@ -336,6 +366,105 @@ function renderEnemyView() {
   const sunk = [...enemyView.sunkCells.values()].map((cells) => ({ cells }));
   renderShipSprites(els.aiBoard, sunk, { over: true, sunk: true });
   updateRosters();
+  renderHeatmap();
+}
+
+// --- Tactical heatmap overlay ---
+//
+// A pure presentation layer over the targeting grid. It shades each unfired
+// cell by how many ways the enemy's remaining unsunk ships could still legally
+// occupy it (see heatmap.js). It reads only player-known information (struck
+// cells, sunk ships, and the public fleet composition) — never hidden ship
+// positions — so it cannot affect the AI or game state.
+
+// Gathers the known-board info the heatmap needs, from whichever mode is active.
+function knownBoardInfo() {
+  const hits = [];
+  const misses = [];
+  const sunkCells = [];
+  let remainingSizes = [];
+
+  if (mode === "online") {
+    for (const [key, info] of enemyView.shots) {
+      const [r, c] = key.split(",").map(Number);
+      (info.result === "hit" ? hits : misses).push([r, c]);
+    }
+    for (const cells of enemyView.sunkCells.values()) {
+      for (const [r, c] of cells) sunkCells.push([r, c]);
+    }
+    remainingSizes = SHIPS.filter((s) => !enemyView.sunkShips.has(s.name)).map(
+      (s) => s.size
+    );
+  } else {
+    for (const key of game.aiBoard.shots) {
+      const [r, c] = key.split(",").map(Number);
+      (game.aiBoard.shipAt(r, c) ? hits : misses).push([r, c]);
+    }
+    for (const ship of game.aiBoard.ships) {
+      if (game.aiBoard.isShipSunk(ship)) {
+        for (const [r, c] of ship.cells) sunkCells.push([r, c]);
+      } else {
+        remainingSizes.push(ship.size);
+      }
+    }
+  }
+  return { hits, misses, sunkCells, remainingSizes };
+}
+
+function getHeatLayer() {
+  let layer = els.aiBoard.querySelector(":scope > .heat-layer");
+  if (!layer) {
+    layer = document.createElement("div");
+    els.aiBoard.appendChild(layer);
+  }
+  layer.className = "heat-layer";
+  return layer;
+}
+
+// Redraws the overlay from the current known board. No-op (and clears) when the
+// toggle is off, so flipping it off restores the normal targeting view.
+function renderHeatmap() {
+  const layer = getHeatLayer();
+  layer.innerHTML = "";
+  if (!tacticalView) return;
+
+  const { hits, misses, sunkCells, remainingSizes } = knownBoardInfo();
+  const scores = computeHeatmap({
+    size: BOARD_SIZE,
+    hits,
+    misses,
+    sunkCells,
+    remainingSizes,
+  });
+  let max = 0;
+  for (const row of scores) for (const v of row) if (v > max) max = v;
+  if (max <= 0) return;
+
+  for (let r = 0; r < BOARD_SIZE; r++) {
+    for (let c = 0; c < BOARD_SIZE; c++) {
+      const v = scores[r][c];
+      if (v <= 0) continue;
+      const cell = cellAt(els.aiBoard, r, c);
+      const tile = document.createElement("div");
+      tile.className = "heat-cell";
+      // Subtle floor so even low-probability cells read; ramp warm to the peak.
+      const alpha = 0.1 + 0.62 * (v / max);
+      tile.style.left = `${cell.offsetLeft}px`;
+      tile.style.top = `${cell.offsetTop}px`;
+      tile.style.width = `${cell.offsetWidth}px`;
+      tile.style.height = `${cell.offsetHeight}px`;
+      tile.style.background = `rgba(255, 159, 67, ${alpha.toFixed(3)})`;
+      layer.appendChild(tile);
+    }
+  }
+}
+
+function setTacticalView(on) {
+  tacticalView = on;
+  els.aiBoard.classList.toggle("tactical", on);
+  els.tacticalBtn.classList.toggle("active", on);
+  els.tacticalBtn.setAttribute("aria-pressed", on ? "true" : "false");
+  renderHeatmap();
 }
 
 // --- Dynamic background: tint by who's ahead + late-game "overtime" pulse ---
@@ -530,6 +659,7 @@ function handlePlayerShot(e) {
     stats.shots++;
     if (res.result === "hit") stats.hits++;
     logShot("You", row, col, res);
+    logQuip("You", res);
     announceShot(res, "You");
     if (game.phase === PHASE.OVER) {
       busy = false;
@@ -561,6 +691,7 @@ function aiTurn() {
     renderPlayerBoard();
     updateAtmosphere();
     logShot("Enemy", res.row, res.col, res);
+    logQuip("Enemy", res);
     announceShot(res, "Enemy");
     if (game.phase === PHASE.OVER) {
       busy = false;
@@ -806,6 +937,8 @@ function endGame() {
 
 // Shows the WIN / DEFEAT end screen with the player's shot count and accuracy.
 function showEndScreen(win) {
+  lastWin = win;
+  els.copyFeedback.textContent = "";
   els.endTitle.textContent = win ? "Victory" : "Defeat";
   els.endTitle.classList.toggle("win", win);
   els.endTitle.classList.toggle("lose", !win);
@@ -820,6 +953,93 @@ function showEndScreen(win) {
   els.endScreen.classList.remove("hidden");
   setStatus(win ? "You win!" : "You lose.");
   if (win) launchConfetti();
+}
+
+// --- Shareable result card ---
+// Reads the player's targeting grid into a row-major array of
+// "hit" | "miss" | null using only what the player can see (struck cells in
+// vs-AI mode, acked shots in online mode) — never the hidden enemy layout.
+function targetingGridState() {
+  const grid = Array.from({ length: BOARD_SIZE }, () =>
+    new Array(BOARD_SIZE).fill(null)
+  );
+  if (mode === "online") {
+    for (const [key, info] of enemyView.shots) {
+      const [r, c] = key.split(",").map(Number);
+      grid[r][c] = info.result === "hit" ? "hit" : "miss";
+    }
+  } else {
+    for (const key of game.aiBoard.shots) {
+      const [r, c] = key.split(",").map(Number);
+      grid[r][c] = game.aiBoard.shipAt(r, c) ? "hit" : "miss";
+    }
+  }
+  return grid;
+}
+
+function resultText() {
+  const accuracy = stats.shots
+    ? Math.round((stats.hits / stats.shots) * 100)
+    : 0;
+  const modeLabel =
+    mode === "online"
+      ? "Online"
+      : game.difficulty.charAt(0).toUpperCase() + game.difficulty.slice(1);
+  return buildResultText({
+    win: lastWin,
+    shots: stats.shots,
+    accuracy,
+    mode: modeLabel,
+    grid: targetingGridState(),
+    url: location.origin && location.origin !== "null" ? location.href : "",
+  });
+}
+
+// Copies the result summary to the clipboard, using the async Clipboard API
+// where available and falling back to a hidden textarea + execCommand("copy")
+// (older browsers, or non-secure contexts where navigator.clipboard is absent).
+async function copyResult() {
+  const text = resultText();
+  let ok = false;
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(text);
+      ok = true;
+    }
+  } catch {
+    ok = false;
+  }
+  if (!ok) ok = legacyCopy(text);
+  showCopyFeedback(ok);
+}
+
+function legacyCopy(text) {
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.setAttribute("readonly", "");
+  ta.style.position = "fixed";
+  ta.style.top = "-1000px";
+  ta.style.opacity = "0";
+  document.body.appendChild(ta);
+  ta.select();
+  let ok = false;
+  try {
+    ok = document.execCommand("copy");
+  } catch {
+    ok = false;
+  }
+  document.body.removeChild(ta);
+  return ok;
+}
+
+let copyFeedbackTimer = null;
+function showCopyFeedback(ok) {
+  els.copyFeedback.textContent = ok ? "Copied!" : "Press Ctrl+C to copy";
+  els.copyFeedback.classList.toggle("ok", ok);
+  clearTimeout(copyFeedbackTimer);
+  copyFeedbackTimer = setTimeout(() => {
+    els.copyFeedback.textContent = "";
+  }, 2200);
 }
 
 function resetAll() {
@@ -838,6 +1058,8 @@ function resetAll() {
   els.endScreen.classList.add("hidden");
   els.setup.classList.remove("hidden");
   els.aiBoard.classList.remove("targetable");
+  // Start each new game with the tactical overlay off.
+  setTacticalView(false);
   // Return to single-player by default after a match.
   setMode("ai");
   updateAtmosphere();
@@ -943,6 +1165,8 @@ function init() {
   els.startBtn.addEventListener("click", startBattle);
   els.aiBoard.addEventListener("click", handlePlayerShot);
   els.playAgainBtn.addEventListener("click", resetAll);
+  els.copyResultBtn.addEventListener("click", copyResult);
+  els.tacticalBtn.addEventListener("click", () => setTacticalView(!tacticalView));
 
   markTrayPlaced();
 }

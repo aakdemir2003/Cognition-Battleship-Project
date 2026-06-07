@@ -36,6 +36,29 @@ Any static server works (`npx serve`, VS Code Live Server, etc.).
 5. Destroy the entire enemy fleet to win — or lose if yours is sunk first.
    **Play Again** fully resets the game.
 
+## Features
+
+Beyond the core game, the battle screen has a few extras:
+
+- **Shareable result card.** On the WIN/DEFEAT screen, **Copy result** copies a
+  Wordle-style emoji summary of your targeting grid to the clipboard — one row
+  per board row (🔥 hit, 🟦 miss, ⬛ never fired) under a header like
+  `BATTLESHIP — Victory in 41 shots (44% accuracy) on Hard`. It uses the
+  Clipboard API with a textarea fallback and shows a **Copied!** confirmation.
+- **Enemy admiral commentary.** In vs-Computer mode the AI has a personality
+  that quips in the battle log on every hit, miss, and sinking (yours and its
+  own). The tone scales with difficulty — encouraging on Easy, neutral on
+  Medium, smug on Hard — drawing from several lines per event at random with no
+  immediate repeats. Quips are styled distinctly so they don't clutter the shot
+  history.
+- **Tactical View heatmap.** A toggle above the targeting grid overlays each
+  unfired cell with warm shading proportional to how many ways the enemy's
+  remaining (unsunk) ships could still legally occupy it, given every hit and
+  miss so far. It recomputes after each shot. This is a pure presentation aid
+  built only from information you already have (struck cells, sunk ships, and
+  the public fleet sizes) — it never reveals hidden ship positions and never
+  changes the AI or game state. Toggle it off to restore the normal view.
+
 ## Online multiplayer (two players)
 
 Switch the **Mode** toggle to **vs Player (online)** to play another person
@@ -101,7 +124,12 @@ npm test            # or: node --test
 Coverage includes ship-placement validation, hit/miss/sunk detection, the win
 condition, and that the AI never repeats or wastes a shot — plus the
 difficulty-specific tactics (parity hunting, directional targeting, returning to
-hunt after a sink).
+hunt after a sink). The newer features are covered too: the **tactical heatmap**
+math (`test/heatmap.test.js` — cells adjacent to a known hit score higher, cells
+where no remaining ship fits score zero, misses and sunk cells block
+placements), the **result card** text builder (`test/share.test.js`), and the
+**admiral commentary** picker (`test/commentary.test.js` — tone pools per
+difficulty, no immediate repeats).
 
 ## Tech notes
 
@@ -113,6 +141,11 @@ hunt after a sink).
   - `src/game.js` — `Game` ties the two boards + AI together and tracks turns.
     UI-agnostic so it's driven by both the DOM and the tests.
   - `src/main.js` — DOM rendering and input wiring only.
+  - `src/heatmap.js` — pure Tactical View math: scores each unfired cell by the
+    number of legal placements of the enemy's remaining ships. No DOM.
+  - `src/share.js` — builds the Wordle-style shareable result text. No DOM.
+  - `src/commentary.js` — the enemy admiral's quip pools (per difficulty/event)
+    and a no-immediate-repeat picker. No DOM.
   - `src/net.js` — transport abstraction exposing a uniform `Room` API over two
     interchangeable backends: Firebase Realtime Database (cross-device) and
     `localStorage` (same-device, cross-tab fallback).

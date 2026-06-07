@@ -89,6 +89,10 @@
         </section>
         <section class="board-wrap">
           <h2>Targeting Grid</h2>
+          <button id="tactical-btn" class="tactical-btn" type="button" aria-pressed="false"
+            title="Shade unfired cells by how likely an enemy ship still occupies them">
+            Tactical View
+          </button>
           <div id="enemy-roster" class="fleet-roster" aria-label="Enemy fleet status"></div>
           <div class="board-frame">
             <span class="frame-corner" aria-hidden="true"></span>
@@ -136,7 +140,11 @@
           alt="Cognition"
           class="end-logo"
         />
-        <button id="play-again-btn" type="button">Play Again</button>
+        <div class="end-actions">
+          <button id="copy-result-btn" type="button">Copy result</button>
+          <button id="play-again-btn" type="button">Play Again</button>
+        </div>
+        <span id="copy-feedback" class="copy-feedback" role="status" aria-live="polite"></span>
       </div>
     </div>
 

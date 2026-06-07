@@ -30,7 +30,14 @@ const els = {
   endScreen: document.getElementById("end-screen"),
   endTitle: document.getElementById("end-title"),
   endMessage: document.getElementById("end-message"),
+  statShots: document.getElementById("stat-shots"),
+  statAccuracy: document.getElementById("stat-accuracy"),
   playAgainBtn: document.getElementById("play-again-btn"),
+  battleLog: document.getElementById("battle-log"),
+  playerColLabels: document.getElementById("player-col-labels"),
+  playerRowLabels: document.getElementById("player-row-labels"),
+  aiColLabels: document.getElementById("ai-col-labels"),
+  aiRowLabels: document.getElementById("ai-row-labels"),
   playerPad: document.getElementById("player-pad"),
   enemyPad: document.getElementById("enemy-pad"),
   playerRoster: document.getElementById("player-roster"),
@@ -65,8 +72,63 @@ function resetEnemyView() {
   enemyView = { shots: new Map(), sunkShips: new Set(), sunkCells: new Map() };
 }
 
+// Player shot accuracy tally for the end-game summary.
+let stats = { shots: 0, hits: 0 };
+
 function setStatus(text) {
   els.status.textContent = text;
+}
+
+// Grid coordinate for a cell, e.g. (0,0) -> "A1", (9,4) -> "J5".
+// Rows are letters A–J, columns are numbers 1–10.
+function coord(row, col) {
+  return `${String.fromCharCode(65 + row)}${col + 1}`;
+}
+
+// Builds the A–J row labels and 1–10 column labels around a board. Each label
+// strip is a grid that mirrors the board's track sizing so labels line up with
+// their cells at every responsive cell size.
+function buildAxisLabels(colEl, rowEl) {
+  colEl.innerHTML = "";
+  rowEl.innerHTML = "";
+  for (let c = 0; c < BOARD_SIZE; c++) {
+    const s = document.createElement("span");
+    s.className = "axis-label";
+    s.textContent = c + 1;
+    colEl.appendChild(s);
+  }
+  for (let r = 0; r < BOARD_SIZE; r++) {
+    const s = document.createElement("span");
+    s.className = "axis-label";
+    s.textContent = String.fromCharCode(65 + r);
+    rowEl.appendChild(s);
+  }
+}
+
+// --- Battle log: a scrolling record of every shot with its coordinate. ---
+function logShot(who, row, col, res) {
+  const li = document.createElement("li");
+  const mine = who === "You";
+  li.className = `log-entry ${mine ? "log-you" : "log-enemy"}`;
+  let outcome;
+  if (res.result === "hit") {
+    const name = res.sunk ? res.ship?.name || res.shipName : null;
+    outcome = res.sunk ? `Sunk ${name}!` : "Hit";
+  } else {
+    outcome = "Miss";
+  }
+  li.innerHTML =
+    `<span class="log-who">${who}</span>` +
+    `<span class="log-coord">${coord(row, col)}</span>` +
+    `<span class="log-outcome log-${res.result}${
+      res.sunk ? " log-sunk" : ""
+    }">${outcome}</span>`;
+  els.battleLog.appendChild(li);
+  els.battleLog.scrollTop = els.battleLog.scrollHeight;
+}
+
+function clearBattleLog() {
+  els.battleLog.innerHTML = "";
 }
 
 // --- Board rendering ---
@@ -101,6 +163,54 @@ function applyHullClasses(container, ship) {
   });
 }
 
+// Returns (creating if needed) the absolute overlay layer a board draws its
+// ship sprites into. `over` lifts the layer above the hit/miss markers so a
+// revealed sunk silhouette sits on top of its red hit cells (targeting grid);
+// otherwise it sits below so hit markers stay visible (player's own board).
+function getShipLayer(boardEl, over) {
+  let layer = boardEl.querySelector(":scope > .ship-layer");
+  if (!layer) {
+    layer = document.createElement("div");
+    boardEl.appendChild(layer);
+  }
+  layer.className = `ship-layer${over ? " over" : ""}`;
+  return layer;
+}
+
+// Draws one ship sprite spanning the given [r,c] cells. Geometry is read from
+// the live cell offsets so it stays correct at every responsive cell size; the
+// sprite is sized to the long axis and rotated 90° for vertical ships.
+function drawShipSprite(boardEl, layer, cells, sunk) {
+  const first = cellAt(boardEl, cells[0][0], cells[0][1]);
+  const last = cellAt(boardEl, cells[cells.length - 1][0], cells[cells.length - 1][1]);
+  if (!first || !last) return;
+  const horiz = cells.length < 2 || cells[0][0] === cells[1][0];
+  const left = Math.min(first.offsetLeft, last.offsetLeft);
+  const top = Math.min(first.offsetTop, last.offsetTop);
+  const right = Math.max(first.offsetLeft + first.offsetWidth, last.offsetLeft + last.offsetWidth);
+  const bottom = Math.max(first.offsetTop + first.offsetHeight, last.offsetTop + last.offsetHeight);
+  const boxW = right - left;
+  const boxH = bottom - top;
+  const long = Math.max(boxW, boxH);
+  const thick = Math.min(boxW, boxH);
+  const sprite = document.createElement("div");
+  sprite.className = `ship-sprite${sunk ? " sunk" : ""}`;
+  sprite.style.width = `${long}px`;
+  sprite.style.height = `${thick}px`;
+  sprite.style.left = `${left + boxW / 2 - long / 2}px`;
+  sprite.style.top = `${top + boxH / 2 - thick / 2}px`;
+  if (!horiz) sprite.style.transform = "rotate(90deg)";
+  layer.appendChild(sprite);
+}
+
+// Re-renders all ship sprites for a board. `ships` is a list of { cells } and
+// `over`/`sunk` control layering and styling.
+function renderShipSprites(boardEl, ships, { over = false, sunk = false } = {}) {
+  const layer = getShipLayer(boardEl, over);
+  layer.innerHTML = "";
+  for (const ship of ships) drawShipSprite(boardEl, layer, ship.cells, sunk);
+}
+
 // Renders the player's own board, showing ships and any shots taken against it.
 function renderPlayerBoard() {
   for (let r = 0; r < BOARD_SIZE; r++) {
@@ -122,11 +232,13 @@ function renderPlayerBoard() {
       cell.classList.add("miss");
     }
   }
+  // Ship sprites sit below the hit/miss markers so strikes stay visible.
+  renderShipSprites(els.playerBoard, game.playerBoard.ships);
   updateRosters();
 }
 
-// Renders the targeting grid: only shots are visible, and an enemy ship's hull
-// is revealed only once it is fully sunk.
+// Renders the targeting grid: only shots are visible, and an enemy ship's full
+// silhouette is revealed only once it is fully sunk.
 function renderAiBoard() {
   for (let r = 0; r < BOARD_SIZE; r++) {
     for (let c = 0; c < BOARD_SIZE; c++) {
@@ -143,14 +255,17 @@ function renderAiBoard() {
       cell.classList.add("miss");
     }
   }
+  const sunkShips = [];
   for (const ship of game.aiBoard.ships) {
     if (game.aiBoard.isShipSunk(ship)) {
-      applyHullClasses(els.aiBoard, ship);
       for (const [r, c] of ship.cells) {
         cellAt(els.aiBoard, r, c).classList.add("hit", "sunk");
       }
+      sunkShips.push(ship);
     }
   }
+  // Reveal the full ship silhouette (above the red hit cells) for sunk ships.
+  renderShipSprites(els.aiBoard, sunkShips, { over: true, sunk: true });
   updateRosters();
 }
 
@@ -214,15 +329,12 @@ function renderEnemyView() {
     cell.classList.add(info.result === "hit" ? "hit" : "miss");
   }
   for (const [, cells] of enemyView.sunkCells) {
-    cells.forEach(([r, c], i) => {
-      const cell = cellAt(els.aiBoard, r, c);
-      const horiz = cells.length > 1 && cells[0][0] === cells[1][0];
-      cell.classList.add("ship", horiz ? "ship-h" : "ship-v", "hit", "sunk");
-      const seg =
-        i === 0 ? "ship-bow" : i === cells.length - 1 ? "ship-stern" : "ship-mid";
-      cell.classList.add(seg);
+    cells.forEach(([r, c]) => {
+      cellAt(els.aiBoard, r, c).classList.add("hit", "sunk");
     });
   }
+  const sunk = [...enemyView.sunkCells.values()].map((cells) => ({ cells }));
+  renderShipSprites(els.aiBoard, sunk, { over: true, sunk: true });
   updateRosters();
 }
 
@@ -415,6 +527,9 @@ function handlePlayerShot(e) {
   }).then(() => {
     renderAiBoard();
     updateAtmosphere();
+    stats.shots++;
+    if (res.result === "hit") stats.hits++;
+    logShot("You", row, col, res);
     announceShot(res, "You");
     if (game.phase === PHASE.OVER) {
       busy = false;
@@ -445,6 +560,7 @@ function aiTurn() {
   }).then(() => {
     renderPlayerBoard();
     updateAtmosphere();
+    logShot("Enemy", res.row, res.col, res);
     announceShot(res, "Enemy");
     if (game.phase === PHASE.OVER) {
       busy = false;
@@ -507,6 +623,8 @@ function makeOnlineHandlers() {
     },
     start(myTurn) {
       onlineMyTurn = myTurn;
+      stats = { shots: 0, hits: 0 };
+      clearBattleLog();
       els.setup.classList.add("hidden");
       els.endScreen.classList.add("hidden");
       renderPlayerBoard();
@@ -534,6 +652,7 @@ function makeOnlineHandlers() {
       }).then(() => {
         renderPlayerBoard();
         updateAtmosphere();
+        logShot("Enemy", row, col, res);
         announceShot(res, "Enemy");
       });
     },
@@ -552,6 +671,9 @@ function makeOnlineHandlers() {
       }).then(() => {
         renderEnemyView();
         updateAtmosphere();
+        stats.shots++;
+        if (res.result === "hit") stats.hits++;
+        logShot("You", row, col, res);
         announceShot(
           { result: res.result, sunk: res.sunk, ship: { name: res.shipName } },
           "You"
@@ -568,13 +690,7 @@ function makeOnlineHandlers() {
       onlineMyTurn = false;
       els.aiBoard.classList.remove("targetable");
       updateAtmosphere();
-      els.endTitle.textContent = iWon ? "Victory!" : "Defeat";
-      els.endMessage.textContent = iWon
-        ? "You destroyed the enemy fleet."
-        : "Your fleet was sunk.";
-      els.endScreen.classList.remove("hidden");
-      setStatus(iWon ? "You win!" : "You lose.");
-      if (iWon) launchConfetti();
+      showEndScreen(iWon);
     },
   };
 }
@@ -673,6 +789,8 @@ function startBattle() {
     return;
   }
   game.startBattle();
+  stats = { shots: 0, hits: 0 };
+  clearBattleLog();
   els.setup.classList.add("hidden");
   els.aiBoard.classList.add("targetable");
   setStatus("Your turn — fire at the targeting grid!");
@@ -683,11 +801,22 @@ function endGame() {
   els.aiBoard.classList.remove("targetable");
   // Battle's over: clear the mood glow and stop the overtime pulse.
   updateAtmosphere();
-  const win = game.winner === "player";
-  els.endTitle.textContent = win ? "Victory!" : "Defeat";
+  showEndScreen(game.winner === "player");
+}
+
+// Shows the WIN / DEFEAT end screen with the player's shot count and accuracy.
+function showEndScreen(win) {
+  els.endTitle.textContent = win ? "Victory" : "Defeat";
+  els.endTitle.classList.toggle("win", win);
+  els.endTitle.classList.toggle("lose", !win);
   els.endMessage.textContent = win
     ? "You destroyed the enemy fleet."
     : "Your fleet was sunk.";
+  const accuracy = stats.shots
+    ? Math.round((stats.hits / stats.shots) * 100)
+    : 0;
+  els.statShots.textContent = `${stats.shots}`;
+  els.statAccuracy.textContent = `${accuracy}%`;
   els.endScreen.classList.remove("hidden");
   setStatus(win ? "You win!" : "You lose.");
   if (win) launchConfetti();
@@ -700,6 +829,8 @@ function resetAll() {
   }
   onlineMyTurn = false;
   resetEnemyView();
+  stats = { shots: 0, hits: 0 };
+  clearBattleLog();
   game.reset();
   orientation = ORIENTATION.HORIZONTAL;
   draggingShip = null;
@@ -758,6 +889,8 @@ function applyDifficultyUi(difficulty) {
 function init() {
   buildGrid(els.playerBoard);
   buildGrid(els.aiBoard);
+  buildAxisLabels(els.playerColLabels, els.playerRowLabels);
+  buildAxisLabels(els.aiColLabels, els.aiRowLabels);
   buildTray();
   buildRosters();
   applyDifficultyUi(game.difficulty);

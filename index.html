@@ -77,20 +77,35 @@
         <section class="board-wrap">
           <h2>Your Fleet</h2>
           <div id="player-roster" class="fleet-roster" aria-label="Your fleet status"></div>
-          <div id="player-board" class="board" aria-label="Your fleet"></div>
+          <div class="board-frame">
+            <span class="frame-corner" aria-hidden="true"></span>
+            <div id="player-col-labels" class="col-labels" aria-hidden="true"></div>
+            <div id="player-row-labels" class="row-labels" aria-hidden="true"></div>
+            <div id="player-board" class="board" aria-label="Your fleet"></div>
+          </div>
           <div id="enemy-pad" class="launch-pad enemy-pad" aria-hidden="true">
-            <span class="pad-label">Enemy Battery</span>
+            <span class="pad-label">Enemy Guns</span>
           </div>
         </section>
         <section class="board-wrap">
           <h2>Targeting Grid</h2>
           <div id="enemy-roster" class="fleet-roster" aria-label="Enemy fleet status"></div>
-          <div id="ai-board" class="board" aria-label="Enemy waters"></div>
+          <div class="board-frame">
+            <span class="frame-corner" aria-hidden="true"></span>
+            <div id="ai-col-labels" class="col-labels" aria-hidden="true"></div>
+            <div id="ai-row-labels" class="row-labels" aria-hidden="true"></div>
+            <div id="ai-board" class="board" aria-label="Enemy waters"></div>
+          </div>
           <div id="player-pad" class="launch-pad player-pad" aria-hidden="true">
-            <span class="pad-label">Your Battery</span>
+            <span class="pad-label">Your Guns</span>
           </div>
         </section>
       </div>
+
+      <section id="log-panel" class="log-panel" aria-label="Battle log">
+        <h2>Battle Log</h2>
+        <ul id="battle-log" class="battle-log" aria-live="polite"></ul>
+      </section>
     </main>
 
     <!-- Pulsing vignette for the late-game "overtime" feel (purely decorative). -->
@@ -103,8 +118,18 @@
     <!-- End screen -->
     <div id="end-screen" class="end-screen hidden">
       <div class="end-card">
-        <h2 id="end-title">Victory!</h2>
+        <h2 id="end-title">Victory</h2>
         <p id="end-message"></p>
+        <div class="end-stats">
+          <div class="end-stat">
+            <span class="end-stat-num" id="stat-shots">0</span>
+            <span class="end-stat-label">Shots fired</span>
+          </div>
+          <div class="end-stat">
+            <span class="end-stat-num" id="stat-accuracy">0%</span>
+            <span class="end-stat-label">Accuracy</span>
+          </div>
+        </div>
         <p class="end-thanks">Thank you for playing</p>
         <img
           src="assets/cognition-logo.svg"

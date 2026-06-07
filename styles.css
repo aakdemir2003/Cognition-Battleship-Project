@@ -550,6 +550,13 @@ button:disabled {
 .board-wrap {
   position: relative;
   padding-bottom: 44px;
+  /* Size exactly to the board and centre the (full-width) roster above it.
+     Without an explicit width some browsers stretch this block to the whole
+     row and leave the board left-aligned with an empty gap on its right. */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: max-content;
 }
 
 .board-wrap h2 {

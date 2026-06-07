@@ -1,5 +1,5 @@
 :root {
-  --cell: 32px;
+  --cell: 40px;
   --gap: 3px;
   --bg: #0d1b2a;
   --panel: #1b263b;
@@ -569,14 +569,19 @@ button:disabled {
   border-radius: 6px;
 }
 
-/* --- Fleet roster: a silhouette of each vessel on each side, dimmed when sunk. */
+/* --- Fleet roster: a silhouette of each vessel on each side, dimmed when sunk.
+   Laid out as a single horizontal row of vessels to keep it compact and reclaim
+   vertical space for the (larger) board below. */
 .fleet-roster {
   display: flex;
-  flex-direction: column;
-  gap: 3px;
-  width: max-content;
-  margin: 0 auto 6px;
-  padding: 5px 9px;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 6px 12px;
+  width: 100%;
+  margin: 0 auto 8px;
+  padding: 6px 10px;
   background: #0d1b2a;
   border: 1px solid #1b3147;
   border-radius: 6px;
@@ -584,8 +589,9 @@ button:disabled {
 
 .roster-ship {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 3px;
   transition: opacity 0.25s;
 }
 
@@ -608,9 +614,10 @@ button:disabled {
 }
 
 .roster-label {
-  font-size: 0.72rem;
-  letter-spacing: 1px;
+  font-size: 0.62rem;
+  letter-spacing: 0.5px;
   text-transform: uppercase;
+  white-space: nowrap;
   color: #aebfce;
 }
 
@@ -1056,33 +1063,39 @@ button:disabled {
   }
 }
 
-@media (max-width: 720px) {
+@media (max-width: 760px) {
   :root {
-    --cell: 28px;
+    --cell: 32px;
   }
 }
 
 @media (max-width: 480px) {
   :root {
-    --cell: 24px;
+    --cell: 26px;
     --gap: 2px;
   }
 }
 
 /* Short viewports (e.g. laptops): shrink the cells so the whole placement grid
    fits on screen and the bottom rows stay reachable without long scrolling. */
-@media (max-height: 860px) {
+@media (max-height: 920px) {
   :root {
-    --cell: 28px;
+    --cell: 36px;
   }
 }
 
-@media (max-height: 720px) {
+@media (max-height: 820px) {
   :root {
-    --cell: 24px;
-    --gap: 2px;
+    --cell: 30px;
   }
   header {
     padding: 6px 16px 4px;
+  }
+}
+
+@media (max-height: 700px) {
+  :root {
+    --cell: 26px;
+    --gap: 2px;
   }
 }

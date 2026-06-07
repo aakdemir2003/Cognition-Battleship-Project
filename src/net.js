@@ -53,6 +53,7 @@ async function loadFirebase() {
 
 function firebaseRoom(code) {
   const ready = loadFirebase();
+  let closed = false;
   const base = (mod, db) => mod.ref(db, `rooms/${code}`);
   const childRef = (mod, db, path) =>
     path ? mod.child(base(mod, db), path) : base(mod, db);
@@ -73,19 +74,29 @@ function firebaseRoom(code) {
       return snap.exists() ? snap.val() : null;
     },
     onValue(path, cb) {
-      let off = () => {};
+      let off = null;
+      let cancelled = false;
       ready.then(({ db, dbMod }) => {
+        // Skip if this listener (or the whole room) was torn down before the
+        // SDK finished loading — otherwise we'd attach a listener that fires
+        // callbacks on an already-abandoned match.
+        if (cancelled || closed) return;
         off = dbMod.onValue(childRef(dbMod, db, path), (snap) =>
           cb(snap.exists() ? snap.val() : null)
         );
       });
-      return () => off();
+      return () => {
+        cancelled = true;
+        if (off) off();
+      };
     },
     async onDisconnect(path, value) {
       const { db, dbMod } = await ready;
       dbMod.onDisconnect(childRef(dbMod, db, path)).set(value);
     },
-    close() {},
+    close() {
+      closed = true;
+    },
   };
 }
 

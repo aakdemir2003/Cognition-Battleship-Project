@@ -51,7 +51,9 @@ export class OnlineMatch {
   async join() {
     const meta = await this.room.get("meta");
     if (!meta) return false;
-    if (meta.status === "over") return false;
+    // Only an open, not-yet-started room may be joined. Joining a room that is
+    // already "placing"/"playing"/"over" would reset or corrupt a live match.
+    if (meta.status !== "waiting") return false;
     await this.room.update({
       "players/guest/present": true,
       "meta/status": "placing",
@@ -109,8 +111,7 @@ export class OnlineMatch {
     if (meta.status === "playing" && !this.started) {
       this.started = true;
       this.on.start?.(meta.turn === this.role);
-    }
-    if (meta.status === "playing" && this.started) {
+    } else if (meta.status === "playing" && this.started) {
       this.on.turn?.(meta.turn === this.role);
     }
     if (meta.status === "over" && !this.ended) {

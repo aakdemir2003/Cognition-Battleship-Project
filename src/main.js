@@ -625,6 +625,7 @@ async function joinOnlineGame() {
   });
   const ok = await online.join();
   if (!ok) {
+    online.room.close(); // release the transport's listeners before discarding
     online = null;
     setOnlineStatus("No open game found with that code.");
     return;

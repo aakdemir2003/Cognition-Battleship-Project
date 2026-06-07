@@ -48,12 +48,19 @@ instead of the AI:
    the opponent's board (fog of war).
 
 **Transport.** The site stays fully static. Cross-device play uses
-[Firebase Realtime Database](https://firebase.google.com/docs/database) — paste
-your project's `firebaseConfig` into [`src/firebase-config.js`](./src/firebase-config.js)
+[Firebase Realtime Database](https://firebase.google.com/docs/database). The
+project's `firebaseConfig` lives in [`src/firebase-config.js`](./src/firebase-config.js)
 (these web-config values are public by design; access is gated by database
-security rules). Until a config is provided, online mode falls back to a
-same-device, cross-tab backend (via `localStorage`) so the flow is fully
-playable and testable by opening two browser tabs on one machine.
+security rules). If the config is removed (set to `null`), online mode falls
+back to a same-device, cross-tab backend (via `localStorage`) so the flow is
+still playable and testable by opening two browser tabs on one machine.
+
+**Security rules.** [`database.rules.json`](./database.rules.json) locks the
+database down to game rooms only (everything outside `/rooms/<code>` is denied)
+and validates `meta.status`/`meta.turn`. Apply it in the Firebase console
+(**Realtime Database → Rules → paste → Publish**) or via the CLI
+(`firebase deploy --only database`). This replaces the open 30-day "test mode"
+default so the database isn't world-readable/writable after the trial expires.
 
 ### Fleet
 
@@ -111,8 +118,8 @@ hunt after a sink).
     `localStorage` (same-device, cross-tab fallback).
   - `src/online.js` — `OnlineMatch`, the 1v1 state machine (create/join, ready
     sync, turn alternation, authoritative own-board shot/ack handshake).
-  - `src/firebase-config.js` — placeholder for the user-supplied Firebase web
-    config (`null` until provided).
+  - `src/firebase-config.js` — the Firebase web config (public by design); set
+    to `null` to force the `localStorage` fallback.
   - `index.html` / `styles.css` — markup and styling.
 - **No framework / no bundler.** Source is split into ES modules and loaded with
   `<script type="module">`. This keeps it trivially deployable to any static

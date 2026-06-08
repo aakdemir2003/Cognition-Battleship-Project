@@ -75,7 +75,9 @@
 
       <div class="boards">
         <section class="board-wrap">
-          <h2>Your Fleet</h2>
+          <div class="board-head">
+            <h2>Your Fleet</h2>
+          </div>
           <div id="player-roster" class="fleet-roster" aria-label="Your fleet status"></div>
           <div class="board-frame">
             <span class="frame-corner" aria-hidden="true"></span>
@@ -88,11 +90,13 @@
           </div>
         </section>
         <section class="board-wrap">
-          <h2>Targeting Grid</h2>
-          <button id="tactical-btn" class="tactical-btn" type="button" aria-pressed="false"
-            title="Shade unfired cells by how likely an enemy ship still occupies them">
-            Tactical View
-          </button>
+          <div class="board-head">
+            <h2>Targeting Grid</h2>
+            <button id="tactical-btn" class="tactical-btn" type="button" aria-pressed="false"
+              title="Shade unfired cells by how likely an enemy ship still occupies them">
+              Tactical View
+            </button>
+          </div>
           <div id="enemy-roster" class="fleet-roster" aria-label="Enemy fleet status"></div>
           <div class="board-frame">
             <span class="frame-corner" aria-hidden="true"></span>

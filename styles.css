@@ -480,15 +480,53 @@ kbd {
   position: relative;
   width: var(--cell);
   height: var(--cell);
-  background: linear-gradient(180deg, #7d8c9c 0%, #515f6c 55%, #3a4450 100%);
+  background: linear-gradient(
+    180deg,
+    var(--hull-hi, #7d8c9c) 0%,
+    var(--hull, #515f6c) 55%,
+    var(--hull-lo, #3a4450) 100%
+  );
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+/* Per-class livery: each ship class gets its own hull colours + deck accent,
+   matching its board sprite and fleet-status icon. */
+.tray-ship[data-name="Carrier"] {
+  --hull-hi: #7c8a96;
+  --hull: #5c6b78;
+  --hull-lo: #39444e;
+  --deck: #e8b53a;
+}
+.tray-ship[data-name="Battleship"] {
+  --hull-hi: #5a6571;
+  --hull: #3f4954;
+  --hull-lo: #262d35;
+  --deck: #0f141a;
+}
+.tray-ship[data-name="Cruiser"] {
+  --hull-hi: #92a8c0;
+  --hull: #6f8aa6;
+  --hull-lo: #455a72;
+  --deck: rgba(232, 240, 247, 0.6);
+}
+.tray-ship[data-name="Submarine"] {
+  --hull-hi: #2f5c5a;
+  --hull: #173a39;
+  --hull-lo: #0b2120;
+  --deck: #5fb0aa;
+}
+.tray-ship[data-name="Destroyer"] {
+  --hull-hi: #b6c4d2;
+  --hull: #93a3b3;
+  --hull-lo: #5e6f80;
+  --deck: #d7392f;
 }
 
 /* Deck line + rounded bow/stern so a tray piece looks like a hull, not blocks. */
 .tray-ship .seg::before {
   content: "";
   position: absolute;
-  background: rgba(226, 234, 240, 0.55);
+  background: var(--deck, rgba(226, 234, 240, 0.55));
   border-radius: 2px;
 }
 .tray-ship:not(.vertical) .seg::before {
@@ -716,6 +754,22 @@ button:disabled {
   background: url("assets/ship-top.svg") center / 100% 100% no-repeat;
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.55));
 }
+/* Per-class silhouette + livery (each SVG carries its own colour scheme). */
+.ship-sprite.ship-carrier {
+  background-image: url("assets/ship-carrier.svg");
+}
+.ship-sprite.ship-battleship {
+  background-image: url("assets/ship-battleship.svg");
+}
+.ship-sprite.ship-cruiser {
+  background-image: url("assets/ship-cruiser.svg");
+}
+.ship-sprite.ship-submarine {
+  background-image: url("assets/ship-submarine.svg");
+}
+.ship-sprite.ship-destroyer {
+  background-image: url("assets/ship-destroyer.svg");
+}
 .ship-sprite.sunk {
   filter: grayscale(0.5) brightness(0.72)
     drop-shadow(0 0 4px rgba(230, 57, 70, 0.65));
@@ -903,6 +957,30 @@ button:disabled {
 }
 .silo .silo-seg:last-child {
   border-radius: 0 50% 50% 0;
+}
+
+/* Per-class livery on the fleet-status icons, matching the tray + board sprite.
+   The thin top accent echoes each class's deck stripe. (The .sunk override
+   below is later in the file, so a sunk ship still shows the red dead-hull.) */
+.roster-ship[data-name="Carrier"] .silo-seg {
+  background: linear-gradient(180deg, #7c8a96, #4a5762);
+  box-shadow: inset 0 1.5px 0 #e8b53a;
+}
+.roster-ship[data-name="Battleship"] .silo-seg {
+  background: linear-gradient(180deg, #5a6571, #2d343d);
+  box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, 0.18);
+}
+.roster-ship[data-name="Cruiser"] .silo-seg {
+  background: linear-gradient(180deg, #92a8c0, #54697f);
+  box-shadow: inset 0 1.5px 0 rgba(232, 240, 247, 0.55);
+}
+.roster-ship[data-name="Submarine"] .silo-seg {
+  background: linear-gradient(180deg, #2f5c5a, #0d2423);
+  box-shadow: inset 0 1.5px 0 #5fb0aa;
+}
+.roster-ship[data-name="Destroyer"] .silo-seg {
+  background: linear-gradient(180deg, #b6c4d2, #6b7c8d);
+  box-shadow: inset 0 1.5px 0 #d7392f;
 }
 
 .roster-label {

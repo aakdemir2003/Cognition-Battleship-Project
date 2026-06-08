@@ -211,7 +211,13 @@ function getShipLayer(boardEl, over) {
 // Draws one ship sprite spanning the given [r,c] cells. Geometry is read from
 // the live cell offsets so it stays correct at every responsive cell size; the
 // sprite is sized to the long axis and rotated 90° for vertical ships.
-function drawShipSprite(boardEl, layer, cells, sunk) {
+// Maps a ship's name to its livery CSS class so each class renders with its
+// own silhouette SVG + colour. Unknown names fall back to the generic hull.
+function shipClass(name) {
+  return name ? `ship-${String(name).toLowerCase()}` : "";
+}
+
+function drawShipSprite(boardEl, layer, cells, sunk, name) {
   const first = cellAt(boardEl, cells[0][0], cells[0][1]);
   const last = cellAt(boardEl, cells[cells.length - 1][0], cells[cells.length - 1][1]);
   if (!first || !last) return;
@@ -225,7 +231,8 @@ function drawShipSprite(boardEl, layer, cells, sunk) {
   const long = Math.max(boxW, boxH);
   const thick = Math.min(boxW, boxH);
   const sprite = document.createElement("div");
-  sprite.className = `ship-sprite${sunk ? " sunk" : ""}`;
+  const cls = shipClass(name);
+  sprite.className = `ship-sprite${sunk ? " sunk" : ""}${cls ? " " + cls : ""}`;
   sprite.style.width = `${long}px`;
   sprite.style.height = `${thick}px`;
   sprite.style.left = `${left + boxW / 2 - long / 2}px`;
@@ -239,7 +246,7 @@ function drawShipSprite(boardEl, layer, cells, sunk) {
 function renderShipSprites(boardEl, ships, { over = false, sunk = false } = {}) {
   const layer = getShipLayer(boardEl, over);
   layer.innerHTML = "";
-  for (const ship of ships) drawShipSprite(boardEl, layer, ship.cells, sunk);
+  for (const ship of ships) drawShipSprite(boardEl, layer, ship.cells, sunk, ship.name);
 }
 
 // Renders the player's own board, showing ships and any shots taken against it.
@@ -365,7 +372,7 @@ function renderEnemyView() {
       cellAt(els.aiBoard, r, c).classList.add("hit", "sunk");
     });
   }
-  const sunk = [...enemyView.sunkCells.values()].map((cells) => ({ cells }));
+  const sunk = [...enemyView.sunkCells.entries()].map(([name, cells]) => ({ cells, name }));
   renderShipSprites(els.aiBoard, sunk, { over: true, sunk: true });
   updateRosters();
   renderHeatmap();

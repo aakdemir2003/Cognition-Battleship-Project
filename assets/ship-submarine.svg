@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 20" preserveAspectRatio="none" role="img" aria-label="submarine">
+  <defs>
+    <linearGradient id="sb" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2f5c5a"/>
+      <stop offset="0.5" stop-color="#173a39"/>
+      <stop offset="1" stop-color="#0b2120"/>
+    </linearGradient>
+  </defs>
+  <!-- narrow cylindrical dark-teal hull, rounded both ends -->
+  <path d="M10 6 H90 Q99 10 90 14 H10 Q1 10 10 6 Z" fill="url(#sb)" stroke="#5fb0aa" stroke-width="0.8"/>
+  <!-- conning tower (sail) -->
+  <rect x="44" y="2.5" width="13" height="6" rx="1.4" fill="#0d2b2a" stroke="#3f827e" stroke-width="0.5"/>
+  <!-- periscope -->
+  <rect x="50" y="0.5" width="1.4" height="3" fill="#5fb0aa"/>
+  <!-- hull waterline highlight -->
+  <rect x="16" y="9.6" width="68" height="1" rx="0.5" fill="rgba(95,176,170,0.5)"/>
+</svg>

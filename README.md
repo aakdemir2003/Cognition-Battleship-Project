@@ -5,7 +5,7 @@ playable in the browser — against a built-in AI opponent, or head-to-head
 online against another player. Plain HTML/CSS/JavaScript — no backend, no build
 step, no framework — so it deploys cleanly as a static site.
 
-**Play it live:** _(GitHub Pages URL added on deploy)_
+**Play it live:** https://aakdemir2003.github.io/Cognition-Battleship-Project/
 
 ## How to run locally
 

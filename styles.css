@@ -611,19 +611,23 @@ button:disabled {
 }
 
 /* Equal-height header row on both columns so the boards stay top-aligned.
-   The Tactical View toggle is floated inline (absolute) and therefore adds
-   no vertical offset, keeping both grids' row A on the same line at all times. */
+   A symmetric 3-column grid (1fr | heading | 1fr) keeps the heading perfectly
+   centred over the board while the Tactical View toggle lives in its own right
+   column, so it can never slide under / overlap the heading text at any width.
+   Single row + identical min-height on both columns keeps the grids' row A
+   on the same line in every phase, with Tactical View on or off. */
 .board-head {
-  position: relative;
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  justify-content: center;
   width: 100%;
   min-height: 36px;
   margin-bottom: 8px;
+  gap: 8px;
 }
 
 .board-wrap h2 {
+  grid-column: 2;
   margin: 0;
   text-align: center;
   font-size: 1rem;
@@ -631,15 +635,14 @@ button:disabled {
   letter-spacing: 2px;
 }
 
-/* Tactical View toggle, inline-right of the Targeting Grid heading. */
+/* Tactical View toggle, in the right column of the header grid. */
 .tactical-btn {
-  position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
+  grid-column: 3;
+  justify-self: end;
   margin: 0;
   padding: 6px 14px;
   font-size: 0.82rem;
+  white-space: nowrap;
   background: transparent;
   border: 1px solid var(--sea-light);
 }

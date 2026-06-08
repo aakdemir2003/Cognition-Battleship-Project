@@ -67,3 +67,23 @@ root cause, fix.
   so the overlay stays a pure presentation layer that can't affect firing or
   game state. Verified in-browser: toggling on/off leaves the grid and firing
   untouched.
+
+---
+
+## 5. Targeting grid sat lower than the player board (board misalignment)
+
+- **Symptom:** The two boards were no longer top-aligned: the targeting grid's
+  row A sat lower than the player board's row A, so the grids' row labels didn't
+  line up horizontally. Reported with a screenshot.
+- **Root cause:** The "Tactical View" toggle was a normal-flow `<button>` sitting
+  between the "Targeting Grid" heading and that column's fleet roster. It added
+  vertical height on the right column only, pushing everything below it (the
+  roster + board) down — the left column had no equivalent element, so the two
+  boards started at different `top` offsets.
+- **Fix:** Wrapped each column's heading in an equal-height `.board-head` flex
+  row (`min-height: 36px`) and positioned the toggle absolutely
+  (`position: absolute; right: 0`) inside the targeting-grid header so it no
+  longer participates in normal flow. Both headers are now the same height
+  regardless of the toggle, so the boards stay top-aligned in setup and battle,
+  with Tactical View on or off. Verified live: `player board top - ai board top`
+  = `0.00` in both phases.

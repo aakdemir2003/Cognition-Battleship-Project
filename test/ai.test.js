@@ -87,36 +87,90 @@ test("target mode skips cells that were already fired at", () => {
   }
 });
 
-test("HARD hunts only on parity (checkerboard) cells", () => {
-  const ai = new AI(10, mulberry32(3), DIFFICULTY.HARD);
-  // With an empty target queue, the first 30 hunt shots should all be on the
-  // same parity ((r+c) even).
-  for (let i = 0; i < 30; i++) {
-    const shot = ai.nextShot();
-    assert.equal((shot[0] + shot[1]) % 2, 0, `hunt shot off parity: ${shot}`);
-    ai.registerResult(shot[0], shot[1], { result: "miss", sunk: false });
+test("HARD opens on a high-probability central cell, never an edge", () => {
+  // The probability-density hunt should fire where the most ship placements
+  // overlap. On an empty board that is the center, never a corner/edge — which
+  // is what makes it strictly better than the old random/parity hunt.
+  for (let seed = 1; seed <= 20; seed++) {
+    const ai = new AI(10, mulberry32(seed), DIFFICULTY.HARD);
+    const [r, c] = ai.nextShot();
+    assert.ok(r > 0 && r < 9 && c > 0 && c < 9, `opening shot on edge: ${r},${c}`);
   }
 });
 
-test("HARD fires along the inferred line after two collinear hits", () => {
+test("HARD concentrates fire orthogonally adjacent to a hit (target mode)", () => {
   const ai = new AI(10, mulberry32(1), DIFFICULTY.HARD);
-  // Two horizontal hits at (5,5) and (5,6), ship not yet sunk.
+  // A hit at (5,5) that did not sink. The next shot must extend a possible ship
+  // through that hit, i.e. one of the four orthogonal neighbors — never a
+  // diagonal (no straight ship can cover both (5,5) and a diagonal cell).
   ai.fired.add("5,5");
   ai.registerResult(5, 5, { result: "hit", sunk: false });
-  ai.fired.add("5,6");
-  ai.registerResult(5, 6, { result: "hit", sunk: false });
-  const queued = new Set(ai.targetQueue.map(([r, c]) => `${r},${c}`));
-  // Should extend the row at both ends: (5,4) and (5,7). No vertical probes.
-  assert.deepEqual(queued, new Set(["5,4", "5,7"]));
+  const neighbors = new Set(["4,5", "6,5", "5,4", "5,6"]);
+  for (let i = 0; i < 3; i++) {
+    const next = ai.probabilityShot();
+    assert.ok(
+      neighbors.has(`${next[0]},${next[1]}`),
+      `target shot not adjacent to the hit: ${next}`
+    );
+    // mark it fired+miss so the next iteration picks a different neighbor
+    ai.fired.add(`${next[0]},${next[1]}`);
+    ai.registerResult(next[0], next[1], { result: "miss", sunk: false });
+  }
 });
 
-test("HARD returns to hunt mode after a ship is sunk", () => {
-  const ai = new AI(10, mulberry32(1), DIFFICULTY.HARD);
-  ai.fired.add("5,5");
-  ai.registerResult(5, 5, { result: "hit", sunk: false });
-  assert.ok(ai.targetQueue.length > 0);
-  ai.fired.add("5,6");
-  ai.registerResult(5, 6, { result: "hit", sunk: true });
-  assert.equal(ai.targetQueue.length, 0, "target queue cleared after sink");
-  assert.equal(ai.hits.length, 0, "hit tracking cleared after sink");
+test("HARD pursues a struck ship to the kill without wandering off", () => {
+  // One length-3 ship at (4,4),(4,5),(4,6); nothing else on the board.
+  const ai = new AI(10, mulberry32(7), DIFFICULTY.HARD);
+  ai.remainingSizes = [3];
+  const shipSet = new Set(["4,4", "4,5", "4,6"]);
+  const shipCells = [
+    [4, 4],
+    [4, 5],
+    [4, 6],
+  ];
+  const hitsLeft = new Set(shipSet);
+  // Seed the first hit at the middle cell, then let target mode finish it.
+  ai.fired.add("4,5");
+  hitsLeft.delete("4,5");
+  ai.registerResult(4, 5, { result: "hit", sunk: false });
+
+  let shots = 0;
+  while (hitsLeft.size > 0) {
+    const shot = ai.probabilityShot() || ai.randomShot();
+    assert.ok(shot, "AI must produce a shot");
+    const k = `${shot[0]},${shot[1]}`;
+    ai.fired.add(k);
+    if (shipSet.has(k)) {
+      hitsLeft.delete(k);
+      const sunk = hitsLeft.size === 0;
+      ai.registerResult(shot[0], shot[1], {
+        result: "hit",
+        sunk,
+        ship: sunk ? { size: 3, cells: shipCells } : undefined,
+      });
+    } else {
+      ai.registerResult(shot[0], shot[1], { result: "miss", sunk: false });
+    }
+    shots += 1;
+    assert.ok(shots <= 12, "should finish the ship quickly, not wander");
+  }
+  // After the sink the ship's size is gone and its cells are recorded.
+  assert.equal(ai.remainingSizes.includes(3), false, "sunk size removed");
+  assert.equal(ai.sunkCells.length, 3, "sunk cells recorded");
+});
+
+test("HARD wins in fewer shots on average than MEDIUM (more advanced)", () => {
+  let hard = 0;
+  let medium = 0;
+  const games = 60;
+  for (let seed = 1; seed <= games; seed++) {
+    hard += playOut(DIFFICULTY.HARD, seed).shots;
+    medium += playOut(DIFFICULTY.MEDIUM, seed).shots;
+  }
+  assert.ok(
+    hard < medium,
+    `HARD (${(hard / games).toFixed(1)} avg) should beat MEDIUM (${(
+      medium / games
+    ).toFixed(1)} avg)`
+  );
 });

@@ -117,14 +117,19 @@ The AI never fires at the same cell twice on any difficulty.
 - **Medium** — *hunt/target*. Hunts at random until it lands a hit, then probes
   the four orthogonally-adjacent cells until the ship is sunk, then resumes
   hunting.
-- **Hard** — *parity hunt + directional targeting*. In hunt mode it only fires
-  at checkerboard cells `((row + col) % 2 === 0)`, which is enough to find every
-  ship (the smallest is length 2) while spending ~half as many hunting shots.
-  After two hits it infers the ship's orientation and fires along that line
-  instead of wasting shots on perpendicular neighbors.
+- **Hard** — *probability density* (the optimal Battleship strategy, and the
+  same model the Tactical View overlay shows). Every shot, it counts — for each
+  ship still afloat — every legal placement that fits given all known hits,
+  misses and sunk ships, then fires at the cell those placements overlap on most
+  often. With no outstanding hits this is an efficient, centre/parity-weighted
+  hunt that aims squarely at the cells most likely to hide a ship. The moment it
+  lands a hit, only placements covering that hit are counted, so fire collapses
+  around the hit and follows the ship's line until it is sunk — it actively
+  hunts ships down rather than poking blindly nearby.
 
 Over 200 simulated games, average shots to clear the board: **Easy ≈ 95,
-Medium ≈ 70, Hard ≈ 59** — confirming each tier is meaningfully smarter.
+Medium ≈ 70, Hard ≈ 47** — confirming each tier is meaningfully smarter (Hard is
+now near-optimal: it clears all 17 ship cells in ~47 shots).
 
 ## Tests
 
@@ -137,8 +142,9 @@ npm test            # or: node --test
 
 Coverage includes ship-placement validation, hit/miss/sunk detection, the win
 condition, and that the AI never repeats or wastes a shot — plus the
-difficulty-specific tactics (parity hunting, directional targeting, returning to
-hunt after a sink). The newer features are covered too: the **tactical heatmap**
+difficulty-specific tactics (Hard opens on a high-probability central cell,
+concentrates fire around a hit, pursues a struck ship to the kill, and clears
+the board in fewer shots than Medium on average). The newer features are covered too: the **tactical heatmap**
 math (`test/heatmap.test.js` — cells adjacent to a known hit score higher, cells
 where no remaining ship fits score zero, misses and sunk cells block
 placements), the **result card** text builder (`test/share.test.js`), and the

@@ -13,7 +13,7 @@ import * as sfx from "./sound.js";
 const DIFFICULTY_DESC = {
   [DIFFICULTY.EASY]: "Fires at random — never repeats a shot.",
   [DIFFICULTY.MEDIUM]: "Hunts, then targets adjacent cells after a hit.",
-  [DIFFICULTY.HARD]: "Checkerboard hunt + tracks ship orientation. Brutal.",
+  [DIFFICULTY.HARD]: "Probability-density firing — hunts smart, then sinks. Brutal.",
 };
 
 const game = new Game({ difficulty: DIFFICULTY.MEDIUM });

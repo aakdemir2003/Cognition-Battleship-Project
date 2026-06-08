@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 20" preserveAspectRatio="none" role="img" aria-label="cruiser">
+  <defs>
+    <linearGradient id="cr" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#92a8c0"/>
+      <stop offset="0.5" stop-color="#6f8aa6"/>
+      <stop offset="1" stop-color="#455a72"/>
+    </linearGradient>
+  </defs>
+  <!-- slim lighter gray-blue hull -->
+  <path d="M6 4 H88 L98 10 L88 16 H6 Q2 10 6 4 Z" fill="url(#cr)" stroke="#2f3e50" stroke-width="0.8"/>
+  <!-- deck line -->
+  <rect x="12" y="9.2" width="74" height="1.6" rx="0.8" fill="rgba(232,240,247,0.5)"/>
+  <!-- single funnel + compact bridge -->
+  <rect x="46" y="5.5" width="10" height="9" rx="1.2" fill="#2f3e50"/>
+  <rect x="58" y="6.8" width="5" height="6.4" rx="1" fill="#26333f"/>
+  <!-- two small turrets -->
+  <rect x="22" y="7.5" width="7" height="5" rx="1.2" fill="#33424f"/>
+  <rect x="70" y="7.5" width="7" height="5" rx="1.2" fill="#33424f"/>
+</svg>

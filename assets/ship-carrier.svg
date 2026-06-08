@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 20" preserveAspectRatio="none" role="img" aria-label="carrier">
+  <defs>
+    <linearGradient id="cv" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7c8a96"/>
+      <stop offset="0.5" stop-color="#5c6b78"/>
+      <stop offset="1" stop-color="#39444e"/>
+    </linearGradient>
+  </defs>
+  <!-- flat-topped flight deck: long full-width deck, blunt bow -->
+  <path d="M3 3 H94 L98 10 L94 17 H3 Q1 10 3 3 Z" fill="url(#cv)" stroke="#222b33" stroke-width="0.8"/>
+  <!-- full-length flight deck stripe (yellow centreline) -->
+  <rect x="8" y="9" width="84" height="2.2" rx="1" fill="#e8b53a"/>
+  <!-- starboard island superstructure -->
+  <rect x="60" y="4" width="9" height="5" rx="1" fill="#2b3640"/>
+  <!-- deck markings -->
+  <rect x="14" y="6" width="3" height="1" fill="rgba(232,240,247,0.5)"/>
+  <rect x="82" y="13" width="3" height="1" fill="rgba(232,240,247,0.5)"/>
+</svg>

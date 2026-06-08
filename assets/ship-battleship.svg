@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 20" preserveAspectRatio="none" role="img" aria-label="battleship">
+  <defs>
+    <linearGradient id="bb" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5a6571"/>
+      <stop offset="0.5" stop-color="#3f4954"/>
+      <stop offset="1" stop-color="#262d35"/>
+    </linearGradient>
+  </defs>
+  <!-- heavy gunmetal hull, pointed bow -->
+  <path d="M6 2 H86 L98 10 L86 18 H6 Q1 10 6 2 Z" fill="url(#bb)" stroke="#1b212a" stroke-width="0.8"/>
+  <!-- tall central superstructure + funnel -->
+  <rect x="42" y="4" width="14" height="12" rx="1.2" fill="#1c222a"/>
+  <rect x="57" y="6" width="6" height="8" rx="1" fill="#141a21"/>
+  <!-- three big gun turrets (fore, aft pair) -->
+  <rect x="16" y="6.5" width="11" height="7" rx="1.6" fill="#11161c"/>
+  <rect x="30" y="6.5" width="9" height="7" rx="1.6" fill="#11161c"/>
+  <rect x="68" y="6.5" width="11" height="7" rx="1.6" fill="#11161c"/>
+  <!-- gun barrels -->
+  <rect x="11" y="9" width="6" height="1.4" fill="#0c1116"/>
+  <rect x="79" y="9" width="7" height="1.4" fill="#0c1116"/>
+</svg>

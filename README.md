@@ -58,6 +58,20 @@ Beyond the core game, the battle screen has a few extras:
   built only from information you already have (struck cells, sunk ships, and
   the public fleet sizes) — it never reveals hidden ship positions and never
   changes the AI or game state. Toggle it off to restore the normal view.
+- **Sound effects.** A small Web Audio synth (no audio files) plays a missile
+  launch on every shot, a splash on a miss, an explosion on a hit, a bigger
+  blast + sinking groan when a ship is sunk, a victory fanfare / defeat sting on
+  game over, and a subtle tick for button presses and ship placement. Audio
+  only initialises after your first interaction (browser autoplay policy) and is
+  throttled + voice-capped so fast turns never pile into noise. A **Sound**
+  toggle (top-right) mutes/unmutes for the session; everything keeps working
+  while muted.
+- **Per-class ship looks.** Each ship class has its own silhouette and livery —
+  Carrier (gunmetal flat-top with a yellow flight-deck stripe), Battleship (dark
+  gunmetal with gun turrets), Cruiser (lighter gray-blue), Submarine (dark teal
+  with a conning tower), Destroyer (light hull with a red deck stripe) — shown
+  consistently in the placement tray, the player-board sprites, and the
+  fleet-status icons. Hit/sunk markers still read clearly on every colour.
 
 ## Online multiplayer (two players)
 

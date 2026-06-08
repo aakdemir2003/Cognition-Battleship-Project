@@ -8,6 +8,7 @@ import { isCloudConfigured } from "./net.js";
 import { buildResultText } from "./share.js";
 import { createCommentator, eventFor } from "./commentary.js";
 import { computeHeatmap } from "./heatmap.js";
+import * as sfx from "./sound.js";
 
 const DIFFICULTY_DESC = {
   [DIFFICULTY.EASY]: "Fires at random — never repeats a shot.",
@@ -39,6 +40,7 @@ const els = {
   copyResultBtn: document.getElementById("copy-result-btn"),
   copyFeedback: document.getElementById("copy-feedback"),
   tacticalBtn: document.getElementById("tactical-btn"),
+  soundBtn: document.getElementById("sound-btn"),
   battleLog: document.getElementById("battle-log"),
   playerColLabels: document.getElementById("player-col-labels"),
   playerRowLabels: document.getElementById("player-row-labels"),
@@ -209,7 +211,13 @@ function getShipLayer(boardEl, over) {
 // Draws one ship sprite spanning the given [r,c] cells. Geometry is read from
 // the live cell offsets so it stays correct at every responsive cell size; the
 // sprite is sized to the long axis and rotated 90° for vertical ships.
-function drawShipSprite(boardEl, layer, cells, sunk) {
+// Maps a ship's name to its livery CSS class so each class renders with its
+// own silhouette SVG + colour. Unknown names fall back to the generic hull.
+function shipClass(name) {
+  return name ? `ship-${String(name).toLowerCase()}` : "";
+}
+
+function drawShipSprite(boardEl, layer, cells, sunk, name) {
   const first = cellAt(boardEl, cells[0][0], cells[0][1]);
   const last = cellAt(boardEl, cells[cells.length - 1][0], cells[cells.length - 1][1]);
   if (!first || !last) return;
@@ -223,7 +231,8 @@ function drawShipSprite(boardEl, layer, cells, sunk) {
   const long = Math.max(boxW, boxH);
   const thick = Math.min(boxW, boxH);
   const sprite = document.createElement("div");
-  sprite.className = `ship-sprite${sunk ? " sunk" : ""}`;
+  const cls = shipClass(name);
+  sprite.className = `ship-sprite${sunk ? " sunk" : ""}${cls ? " " + cls : ""}`;
   sprite.style.width = `${long}px`;
   sprite.style.height = `${thick}px`;
   sprite.style.left = `${left + boxW / 2 - long / 2}px`;
@@ -237,7 +246,7 @@ function drawShipSprite(boardEl, layer, cells, sunk) {
 function renderShipSprites(boardEl, ships, { over = false, sunk = false } = {}) {
   const layer = getShipLayer(boardEl, over);
   layer.innerHTML = "";
-  for (const ship of ships) drawShipSprite(boardEl, layer, ship.cells, sunk);
+  for (const ship of ships) drawShipSprite(boardEl, layer, ship.cells, sunk, ship.name);
 }
 
 // Renders the player's own board, showing ships and any shots taken against it.
@@ -363,7 +372,7 @@ function renderEnemyView() {
       cellAt(els.aiBoard, r, c).classList.add("hit", "sunk");
     });
   }
-  const sunk = [...enemyView.sunkCells.values()].map((cells) => ({ cells }));
+  const sunk = [...enemyView.sunkCells.entries()].map(([name, cells]) => ({ cells, name }));
   renderShipSprites(els.aiBoard, sunk, { over: true, sunk: true });
   updateRosters();
   renderHeatmap();
@@ -629,6 +638,7 @@ function onDragEnd(e) {
     );
     renderPlayerBoard();
     markTrayPlaced();
+    sfx.ui();
   }
   clearPreview();
   draggingShip = null;
@@ -648,12 +658,14 @@ function handlePlayerShot(e) {
   busy = true;
   els.aiBoard.classList.remove("targetable");
   setStatus("Firing\u2026");
+  sfx.fire();
   launchStrike({
     targetCell: cellAt(els.aiBoard, row, col),
     originEl: els.playerPad,
     side: "player",
     hit: res.result === "hit",
   }).then(() => {
+    playShotSound(res);
     renderAiBoard();
     updateAtmosphere();
     stats.shots++;
@@ -682,12 +694,14 @@ function aiTurn() {
     return;
   }
   setStatus("Incoming fire\u2026");
+  sfx.fire();
   launchStrike({
     targetCell: cellAt(els.playerBoard, res.row, res.col),
     originEl: els.enemyPad,
     side: "enemy",
     hit: res.result === "hit",
   }).then(() => {
+    playShotSound(res);
     renderPlayerBoard();
     updateAtmosphere();
     logShot("Enemy", res.row, res.col, res);
@@ -700,6 +714,17 @@ function aiTurn() {
     updateTurnUi();
     busy = false;
   });
+}
+
+// Maps a shot result to its impact sound: a regular hit gets the explosion,
+// a fully sunk ship gets the bigger blast + groan, and a miss the splash.
+function playShotSound(res) {
+  if (res.result === "hit") {
+    if (res.sunk) sfx.sink();
+    else sfx.hit();
+  } else if (res.result === "miss") {
+    sfx.miss();
+  }
 }
 
 function announceShot(res, who) {
@@ -775,12 +800,14 @@ function makeOnlineHandlers() {
     },
     // Opponent fired at me (defender): render the incoming strike on my fleet.
     incoming(row, col, res) {
+      sfx.fire();
       launchStrike({
         targetCell: cellAt(els.playerBoard, row, col),
         originEl: els.enemyPad,
         side: "enemy",
         hit: res.result === "hit",
       }).then(() => {
+        playShotSound(res);
         renderPlayerBoard();
         updateAtmosphere();
         logShot("Enemy", row, col, res);
@@ -794,12 +821,14 @@ function makeOnlineHandlers() {
         enemyView.sunkShips.add(res.shipName);
         if (res.shipCells) enemyView.sunkCells.set(res.shipName, res.shipCells);
       }
+      sfx.fire();
       launchStrike({
         targetCell: cellAt(els.aiBoard, row, col),
         originEl: els.playerPad,
         side: "player",
         hit: res.result === "hit",
       }).then(() => {
+        playShotSound({ result: res.result, sunk: res.sunk });
         renderEnemyView();
         updateAtmosphere();
         stats.shots++;
@@ -952,7 +981,12 @@ function showEndScreen(win) {
   els.statAccuracy.textContent = `${accuracy}%`;
   els.endScreen.classList.remove("hidden");
   setStatus(win ? "You win!" : "You lose.");
-  if (win) launchConfetti();
+  if (win) {
+    launchConfetti();
+    sfx.win();
+  } else {
+    sfx.lose();
+  }
 }
 
 // --- Shareable result card ---
@@ -1167,6 +1201,33 @@ function init() {
   els.playAgainBtn.addEventListener("click", resetAll);
   els.copyResultBtn.addEventListener("click", copyResult);
   els.tacticalBtn.addEventListener("click", () => setTacticalView(!tacticalView));
+
+  // Initialise audio on the first user gesture so autoplay policies don't block
+  // it (the AudioContext is created/resumed inside unlock()).
+  const unlockOnce = () => {
+    sfx.unlock();
+    window.removeEventListener("pointerdown", unlockOnce);
+    window.removeEventListener("keydown", unlockOnce);
+  };
+  window.addEventListener("pointerdown", unlockOnce);
+  window.addEventListener("keydown", unlockOnce);
+
+  // Subtle UI tick on any button press (the mute button itself is silenced when
+  // it's switching to muted, since gate() drops the sound).
+  document.addEventListener("click", (e) => {
+    if (e.target.closest("button")) sfx.ui();
+  });
+
+  // Mute / unmute toggle. The choice lives in a module-level variable for the
+  // page session (a refresh starts unmuted again).
+  els.soundBtn.addEventListener("click", () => {
+    const m = sfx.toggleMute();
+    els.soundBtn.classList.toggle("muted", m);
+    els.soundBtn.setAttribute("aria-pressed", m ? "true" : "false");
+    els.soundBtn.setAttribute("aria-label", m ? "Sound off" : "Sound on");
+    els.soundBtn.querySelector(".sound-icon").innerHTML = m ? "&#128263;" : "&#128266;";
+    els.soundBtn.querySelector(".sound-label").textContent = m ? "Muted" : "Sound";
+  });
 
   markTrayPlaced();
 }

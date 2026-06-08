@@ -29,6 +29,12 @@
       <p id="status" class="status">Place your fleet to begin.</p>
     </header>
 
+    <button id="sound-btn" class="sound-btn" type="button" aria-pressed="false"
+      title="Mute or unmute game sounds" aria-label="Sound on">
+      <span class="sound-icon" aria-hidden="true">&#128266;</span>
+      <span class="sound-label">Sound</span>
+    </button>
+
     <main>
       <!-- Placement controls -->
       <section id="setup" class="panel">
@@ -75,7 +81,9 @@
 
       <div class="boards">
         <section class="board-wrap">
-          <h2>Your Fleet</h2>
+          <div class="board-head">
+            <h2>Your Fleet</h2>
+          </div>
           <div id="player-roster" class="fleet-roster" aria-label="Your fleet status"></div>
           <div class="board-frame">
             <span class="frame-corner" aria-hidden="true"></span>
@@ -88,11 +96,13 @@
           </div>
         </section>
         <section class="board-wrap">
-          <h2>Targeting Grid</h2>
-          <button id="tactical-btn" class="tactical-btn" type="button" aria-pressed="false"
-            title="Shade unfired cells by how likely an enemy ship still occupies them">
-            Tactical View
-          </button>
+          <div class="board-head">
+            <h2>Targeting Grid</h2>
+            <button id="tactical-btn" class="tactical-btn" type="button" aria-pressed="false"
+              title="Shade unfired cells by how likely an enemy ship still occupies them">
+              Tactical View
+            </button>
+          </div>
           <div id="enemy-roster" class="fleet-roster" aria-label="Enemy fleet status"></div>
           <div class="board-frame">
             <span class="frame-corner" aria-hidden="true"></span>

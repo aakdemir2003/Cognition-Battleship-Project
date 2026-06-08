@@ -87,3 +87,72 @@ root cause, fix.
   regardless of the toggle, so the boards stay top-aligned in setup and battle,
   with Tactical View on or off. Verified live: `player board top - ai board top`
   = `0.00` in both phases.
+
+---
+
+## 6. Boards pushed left with an empty gap on the right (some browsers)
+
+- **Symptom:** After laying the fleet rosters out horizontally, each board sat
+  left-aligned inside its column with a blank gap on the right. It looked fine in
+  one browser but was reported (with a screenshot) as a real left-shift in
+  another — i.e. browser-dependent, not just centered margins.
+- **Root cause:** The rosters were given `width: 100%` inside a `.board-wrap`
+  that had no explicit width. Some browsers shrink-wrap that container to the
+  board (so it looked centered), while others stretch it to the full available
+  column width and then left-align the board within it — leaving the right-side
+  gap.
+- **Fix:** Pinned `.board-wrap` to `width: max-content` and `align-items: center`
+  so the container is always exactly the board's width and centers its children
+  in every browser, eliminating the stretch-and-left-align gap.
+
+---
+
+## 7. Tactical View button covered the "Targeting Grid" heading text
+
+- **Symptom:** On shorter laptop screens the "Tactical View" toggle overlapped
+  the "Targeting Grid" heading, sitting on top of the heading text. Reported
+  directly ("tactical view box covers targeting grid writing").
+- **Root cause:** Fix #5 kept the header centered across the full board width
+  while the toggle was pinned `position: absolute; right: 0`. When cells shrank
+  on small screens, the centered heading text slid under the absolutely-positioned
+  button — they shared the same horizontal band with no reserved space between
+  them.
+- **Fix:** Rebuilt `.board-head` as a symmetric 3-column grid
+  (`grid-template-columns: 1fr auto 1fr`) with the heading in the centre column
+  and the toggle in its own right column (`grid-column: 3; justify-self: end`).
+  The button now occupies dedicated track space, so it can never overlap the
+  heading at any cell size, and the centre column keeps the heading centred.
+  Board top-alignment (fix #5) is preserved.
+
+---
+
+## 8. Multiplayer edge cases (review hardening)
+
+- **Symptom:** Three latent online-mode bugs surfaced in review: (a) a room could
+  be "joined" even when it was already placing/playing/over, which would reset or
+  corrupt a live match; (b) start/turn handling could double-fire; (c) async
+  listener setup could attach a Firebase listener *after* the room had been torn
+  down, firing callbacks on an abandoned match (a listener leak).
+- **Root cause:** The join guard only rejected `status === "over"` instead of
+  requiring `status === "waiting"`; the turn branch wasn't mutually exclusive;
+  and the listener attached after an `await` without checking whether the
+  subscription/room had been cancelled in the meantime.
+- **Fix:** Tightened the join guard to allow joins only when `meta.status ===
+  "waiting"`; made the start/turn branches mutually exclusive (`else if`); and
+  added `cancelled`/`closed` flags so a listener that resolves after teardown is
+  skipped and `close()` reliably detaches it. See `src/online.js` and
+  `src/net.js`.
+
+---
+
+## 9. Hard difficulty tooltip still described the old AI
+
+- **Symptom:** After rewriting Hard to use the probability-density strategy, the
+  difficulty tooltip in the UI still read "Checkerboard hunt + tracks ship
+  orientation. Brutal." — describing the *old* algorithm.
+- **Root cause:** The AI logic in `src/ai.js` was replaced, but the descriptive
+  copy in `DIFFICULTY_DESC` (`src/main.js`) was a separate string that wasn't
+  updated alongside it.
+- **Fix:** Updated `DIFFICULTY_DESC[DIFFICULTY.HARD]` to "Probability-density
+  firing — hunts smart, then sinks. Brutal." so the tooltip matches the actual
+  behavior. Pure copy change, no logic impact.
